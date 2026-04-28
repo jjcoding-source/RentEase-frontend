@@ -14,6 +14,7 @@ import BookingRequest   from './pages/renter/BookingRequest'
 import MyProperties     from './pages/owner/MyProperties'
 import BookingRequests  from './pages/owner/BookingRequests'
 import AddEditProperty  from './pages/owner/AddEditProperty'
+import OwnerDashboard  from  './pages/owner/OwnerDashboard'
 
 // Admin
 import AdminDashboard   from './pages/admin/AdminDashboard'
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/owner/properties/add"    element={<AddEditProperty />} />
         <Route path="/owner/properties/:id/edit" element={<AddEditProperty />} />
         <Route path="/owner/bookings"          element={<BookingRequests />} />
+        <Route path="/owner" element={<OwnerDashboard />} />
       </Route>
 
       {/* Admin routes */}
