@@ -1,10 +1,19 @@
 import Sidebar from './Sidebar'
 
-export default function PageWrapper({ children, pendingBookings }) {
+export default function PageWrapper({
+  children,
+  pendingBookings = 0,
+  savedCount      = 0,
+  unreadNotifs    = 0,
+}) {
   return (
-    <div className="grid min-h-screen bg-[#f2f3ff]" style={{ gridTemplateColumns: '220px 1fr' }}>
-      <Sidebar pendingBookings={pendingBookings} />
-      <main className="p-6 overflow-y-auto">
+    <div className="flex min-h-screen bg-[#f8faff]">
+      <Sidebar
+        pendingBookings={pendingBookings}
+        savedCount={savedCount}
+        unreadNotifs={unreadNotifs}
+      />
+      <main className="flex-1 p-5 overflow-y-auto">
         {children}
       </main>
     </div>
