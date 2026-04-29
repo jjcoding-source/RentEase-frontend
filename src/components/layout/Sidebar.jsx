@@ -13,7 +13,7 @@ const RENTER_SECTIONS = [
   {
     label: 'Bookings',
     items: [
-      { to: '/my-bookings',    label: 'My bookings',    icon: 'calendar', badgeKey: 'pendingBookings' },
+      { to: '/my-bookings',    label: 'My bookings',    icon: 'list',    badgeKey: 'pendingBookings' },
       { to: '/rental-history', label: 'Rental history', icon: 'history' },
     ],
   },
@@ -33,15 +33,16 @@ const RENTER_SECTIONS = [
   },
 ]
 
-// ── Owner sidebar config ──
+
+// ── Owner sidebar config ── exact match to design
 const OWNER_SECTIONS = [
   {
     label: 'Main',
     items: [
       { to: '/owner',                label: 'Overview',       icon: 'grid' },
       { to: '/owner/properties',     label: 'My properties',  icon: 'home' },
-      { to: '/owner/bookings',       label: 'Bookings',       icon: 'calendar', badgeKey: 'pendingBookings' },
-      { to: '/owner/rental-history', label: 'Rental history', icon: 'history' },
+      { to: '/owner/bookings',       label: 'Bookings',       icon: 'list',  badgeKey: 'pendingBookings' },
+      { to: '/owner/rental-history', label: 'Rental history', icon: 'clock' },
     ],
   },
   {
@@ -59,7 +60,7 @@ const ADMIN_SECTIONS = [
     label: 'Main',
     items: [
       { to: '/admin',          label: 'Dashboard',    icon: 'grid' },
-      { to: '/admin/bookings', label: 'All bookings', icon: 'calendar' },
+      { to: '/admin/bookings', label: 'All bookings', icon: 'list' },
       { to: '/properties',     label: 'Browse',       icon: 'search' },
     ],
   },
@@ -82,21 +83,36 @@ const ICONS = {
       <rect x="8" y="8" width="5" height="5" rx=".8" stroke={c} strokeWidth="1.1"/>
     </svg>
   ),
-  search: (c) => (
+  home: (c) => (
     <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
-      <circle cx="6" cy="6" r="4" stroke={c} strokeWidth="1.1"/>
-      <path d="M10 10l3 3" stroke={c} strokeWidth="1.1" strokeLinecap="round"/>
+      <path d="M1 6l6-5 6 5v7a1 1 0 01-1 1H2a1 1 0 01-1-1V6z" stroke={c} strokeWidth="1.1" strokeLinejoin="round"/>
     </svg>
   ),
-  calendar: (c) => (
+  // Lines icon — matches design's bookings icon exactly
+  list: (c) => (
     <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
-      <rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke={c} strokeWidth="1.1"/>
-      <path d="M5 2.5V1M9 2.5V1M1.5 6h11" stroke={c} strokeWidth="1.1" strokeLinecap="round"/>
+      <path d="M5 3.5h7M5 7h7M5 10.5h7" stroke={c} strokeWidth="1.1" strokeLinecap="round"/>
+      <circle cx="2.5" cy="3.5" r=".8" fill={c}/>
+      <circle cx="2.5" cy="7"   r=".8" fill={c}/>
+      <circle cx="2.5" cy="10.5" r=".8" fill={c}/>
+    </svg>
+  ),
+  // Clock icon — matches design's rental history icon
+  clock: (c) => (
+    <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
+      <circle cx="7" cy="7" r="5.5" stroke={c} strokeWidth="1.1"/>
+      <path d="M7 4v3.5l2.5 1.5" stroke={c} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
   history: (c) => (
     <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
       <path d="M2 4h10M4 8h6M4 11h4" stroke={c} strokeWidth="1.1" strokeLinecap="round"/>
+    </svg>
+  ),
+  search: (c) => (
+    <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
+      <circle cx="6" cy="6" r="4" stroke={c} strokeWidth="1.1"/>
+      <path d="M10 10l3 3" stroke={c} strokeWidth="1.1" strokeLinecap="round"/>
     </svg>
   ),
   heart: (c) => (
@@ -114,11 +130,6 @@ const ICONS = {
     <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
       <path d="M7 1.5a4 4 0 014 4v2.5l1 1.5H2L3 8V5.5a4 4 0 014-4z" stroke={c} strokeWidth="1.1" strokeLinejoin="round"/>
       <path d="M5.5 10.5a1.5 1.5 0 003 0" stroke={c} strokeWidth="1.1"/>
-    </svg>
-  ),
-  home: (c) => (
-    <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
-      <path d="M1 6l6-5 6 5v7a1 1 0 01-1 1H2a1 1 0 01-1-1V6z" stroke={c} strokeWidth="1.1" strokeLinejoin="round"/>
     </svg>
   ),
   settings: (c) => (
@@ -169,6 +180,21 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
         </span>
       </div>
 
+      {/* ── User info strip (Owner + Admin only) ── */}
+      {user && (user.role === 'Owner' || user.role === 'Admin') && (
+        <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-[#e2e8f0]">
+          <div className="w-9 h-9 rounded-full bg-[#0053cc] text-white flex items-center justify-center text-[12px] font-bold flex-shrink-0">
+            {user.name?.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold text-[#191b24] leading-none truncate">{user.name}</div>
+            <div className="text-[10px] text-[#727787] mt-0.5 font-medium">
+              {user.role === 'Owner' ? 'Property Owner' : 'Administrator'}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Nav sections ── */}
       <nav className="flex-1 overflow-y-auto py-1">
         {sections.map((section) => (
@@ -189,17 +215,21 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3.5 py-2 text-[12px] font-medium transition-colors cursor-pointer ${
                       isActive
-                        ? 'bg-[#eef4ff] text-[#1558c0] font-bold border-r-2 border-[#1558c0]'
-                        : 'text-[#64748b] hover:bg-gray-50'
+                        ? 'bg-[#f2f3ff] text-[#0053cc] font-semibold border-r-2 border-[#0053cc]'
+                        : 'text-[#424655] hover:bg-gray-50'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      {ICONS[item.icon]?.(isActive ? '#1558c0' : '#64748b')}
+                      {ICONS[item.icon]?.(isActive ? '#0053cc' : '#727787')}
                       <span className="flex-1">{item.label}</span>
                       {badgeVal > 0 && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${badgeStyle[item.badgeKey]}`}>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                          item.badgeKey === 'pendingBookings'
+                            ? 'bg-[#ba1a1a] text-white'
+                            : badgeStyle[item.badgeKey]
+                        }`}>
                           {badgeVal}
                         </span>
                       )}
@@ -211,28 +241,28 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
           </div>
         ))}
 
-        {/* ── Divider before logout ── */}
-        <div className="mx-3.5 my-2 h-px bg-[#e2e8f0]" />
+        {/* ── Divider ── */}
+        <div className="mx-3.5 mt-3 mb-1 h-px bg-[#e6e7f4]" />
 
         {/* ── Logout ── */}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 px-3.5 py-2 text-[12px] font-medium text-[#64748b] hover:bg-gray-50 w-full transition-colors"
+          className="flex items-center gap-2 px-3.5 py-2.5 text-[12px] font-medium text-[#424655] hover:bg-gray-50 w-full transition-colors mt-1"
         >
-          {ICONS.logout('#64748b')}
-          Logout
+          {ICONS.logout('#727787')}
+          Log out
         </button>
       </nav>
 
-      {/* ── User footer ── */}
-      {user && (
+      {/* ── User footer (Renter only) ── */}
+      {user && user.role === 'Renter' && (
         <div className="flex items-center gap-2 px-3.5 py-3 border-t border-[#e2e8f0]">
-          <div className="w-[30px] h-[30px] rounded-full bg-[#1558c0] flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
+          <div className="w-[30px] h-[30px] rounded-full bg-[#0053cc] flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
             {user.name?.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
             <div className="text-[11px] font-semibold text-[#1e293b] leading-none truncate">{user.name}</div>
-            <div className="text-[10px] text-[#94a3b8] mt-0.5">{user.role} account</div>
+            <div className="text-[10px] text-[#94a3b8] mt-0.5">Renter account</div>
           </div>
         </div>
       )}

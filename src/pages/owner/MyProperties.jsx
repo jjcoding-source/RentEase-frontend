@@ -4,32 +4,31 @@ import PageWrapper from '../../components/layout/PageWrapper'
 import { useProperties, useDeleteProperty } from '../../hooks/useProperties'
 import { useOwnerBookings } from '../../hooks/useBookings'
 import { formatINR } from '../../utils/formatCurrency'
-import Badge from '../../components/ui/Badge'
-import StatCard from '../../components/ui/StatCard'
 
 const STATUS_FILTERS = ['All', 'Active', 'Pending', 'Inactive']
 
 const GRADIENTS = [
-  'from-blue-200 to-blue-700',
-  'from-cyan-200 to-teal-600',
-  'from-gray-200 to-gray-600',
-  'from-indigo-200 to-blue-700',
+  'linear-gradient(135deg,#b5d4f4,#185fa5)',
+  'linear-gradient(135deg,#adecff,#00687a)',
+  'linear-gradient(135deg,#dce3eb,#3d444b)',
+  'linear-gradient(135deg,#dae2ff,#0053cc)',
+  'linear-gradient(135deg,#dce3eb,#424655)',
 ]
 
-const STATUS_BADGE = {
-  Active:   'green',
-  Pending:  'amber',
-  Inactive: 'gray',
-  Rejected: 'red',
+const CHIP = {
+  Active:   'bg-[#e1f5e8] text-[#1a6b32]',
+  Pending:  'bg-[#fff3cd] text-[#854f0b]',
+  Inactive: 'bg-[#f2f3ff] text-[#424655]',
+  Rejected: 'bg-[#ffdad6] text-[#93000a]',
 }
 
 export default function MyProperties() {
   const navigate = useNavigate()
-  const [activeFilter, setActiveFilter] = useState('All')
-  const [confirmDelete, setConfirmDelete] = useState(null) 
+  const [activeFilter,  setActiveFilter]  = useState('All')
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   const { data: properties = [], isLoading, isError } = useProperties({ owner: true })
-  const { data: bookings  = [] } = useOwnerBookings()
+  const { data: bookings   = [] }                     = useOwnerBookings()
   const { mutateAsync: deleteProperty, isPending: isDeleting } = useDeleteProperty()
 
   const pendingBookings = bookings.filter(b => b.status === 'Pending').length
@@ -38,12 +37,11 @@ export default function MyProperties() {
     ? properties
     : properties.filter(p => p.status === activeFilter)
 
-  // Stats
-  const totalActive   = properties.filter(p => p.status === 'Active').length
-  const totalPending  = properties.filter(p => p.status === 'Pending').length
-  const monthlyRev    = properties
+  const totalActive  = properties.filter(p => p.status === 'Active').length
+  const totalPending = properties.filter(p => p.status === 'Pending').length
+  const monthlyRev   = properties
     .filter(p => p.status === 'Active')
-    .reduce((sum, p) => sum + p.rent, 0)
+    .reduce((s, p) => s + (p.rent || 0), 0)
 
   async function handleDelete(id) {
     try {
@@ -65,7 +63,7 @@ export default function MyProperties() {
         </div>
         <button
           onClick={() => navigate('/owner/properties/add')}
-          className="bg-[#006aff] text-white px-4 py-2.5 rounded-lg text-[13px] font-bold hover:bg-[#0053cc] transition-colors flex items-center gap-1.5"
+          className="flex items-center gap-1.5 bg-[#006aff] text-white px-[18px] py-2.5 rounded-lg text-[13px] font-bold hover:bg-[#0053cc] transition-colors"
         >
           + Add new property
         </button>
@@ -73,53 +71,78 @@ export default function MyProperties() {
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-4 gap-3 mb-5">
-        <StatCard label="Total listings"  value={properties.length} />
-        <StatCard label="Active"          value={totalActive}   valueColor="text-green-700" />
-        <StatCard label="Pending review"  value={totalPending}  valueColor="text-amber-700" />
-        <StatCard label="Monthly revenue" value={formatINR(monthlyRev)} />
+        <StatCard label="Total listings"  value={properties.length} valueClass="text-[#0053cc]" />
+        <StatCard label="Active"          value={totalActive}        valueClass="text-[#1a6b32]" />
+        <StatCard label="Pending review"  value={totalPending}       valueClass="text-[#854f0b]" />
+        <StatCard label="Monthly revenue" value={
+          monthlyRev >= 100000
+            ? `₹${(monthlyRev / 100000).toFixed(1)}L`
+            : formatINR(monthlyRev)
+        } valueClass="text-[#191b24]" />
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Table section ── */}
       <div className="bg-white border border-[#e6e7f4] rounded-xl overflow-hidden">
 
-        {/* Header */}
+        {/* Section header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#e6e7f4]">
           <h2 className="text-[15px] font-bold text-[#191b24]">All listings</h2>
           <div className="flex gap-1">
-            {STATUS_FILTERS.map(f => (
-              <button
-                key={f}
-                onClick={() => setActiveFilter(f)}
-                className={`px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
-                  activeFilter === f
-                    ? 'bg-[#f2f3ff] text-[#0053cc]'
-                    : 'text-[#727787] hover:bg-gray-50'
-                }`}
-              >
-                {f} {f === 'All' ? `(${properties.length})` : ''}
-              </button>
-            ))}
+            {STATUS_FILTERS.map(f => {
+              const count = f === 'All'
+                ? properties.length
+                : properties.filter(p => p.status === f).length
+              return (
+                <button
+                  key={f}
+                  onClick={() => setActiveFilter(f)}
+                  className={`px-3 py-[5px] rounded-md text-[12px] font-semibold transition-colors ${
+                    activeFilter === f
+                      ? 'bg-[#f2f3ff] text-[#0053cc]'
+                      : 'text-[#727787] hover:bg-gray-50'
+                  }`}
+                >
+                  {f} ({count})
+                </button>
+              )
+            })}
           </div>
         </div>
 
         {/* Loading */}
         {isLoading && (
-          <div className="py-12 text-center text-[13px] text-gray-400 animate-pulse">Loading properties...</div>
+          <div className="py-12 text-center">
+            <div className="flex flex-col gap-3 px-5">
+              {[1,2,3].map(i => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-10 h-8 rounded bg-gray-200 flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-gray-200 rounded w-2/3" />
+                    <div className="h-2.5 bg-gray-200 rounded w-1/3" />
+                  </div>
+                  <div className="w-16 h-5 bg-gray-200 rounded-full" />
+                  <div className="w-24 h-6 bg-gray-200 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Error */}
         {isError && (
-          <div className="py-8 text-center text-red-500 text-[13px]">Failed to load properties.</div>
+          <div className="py-8 text-center text-[13px] text-red-500">
+            Failed to load properties.
+          </div>
         )}
 
         {/* Empty */}
         {!isLoading && !isError && filtered.length === 0 && (
           <div className="py-14 text-center">
             <div className="text-3xl mb-2">🏠</div>
-            <div className="text-[13px] text-gray-400 font-medium">No properties found.</div>
+            <div className="text-[13px] text-gray-400 font-medium mb-2">No properties found.</div>
             <button
               onClick={() => navigate('/owner/properties/add')}
-              className="mt-3 text-[13px] text-[#0053cc] font-semibold hover:underline"
+              className="text-[13px] text-[#0053cc] font-semibold hover:underline"
             >
               Add your first property →
             </button>
@@ -130,28 +153,35 @@ export default function MyProperties() {
         {!isLoading && !isError && filtered.length > 0 && (
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
-              <tr className="bg-[#faf8ff]">
-                {['Property', 'Type', 'Rent/mo', 'Status', 'Bookings', 'Actions'].map((h, i) => (
-                  <th
-                    key={h}
-                    className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]"
-                    style={{ width: ['32%','12%','13%','12%','13%','18%'][i] }}
-                  >
-                    {h}
-                  </th>
-                ))}
+              <tr style={{ background: '#faf8ff' }}>
+                <th style={{ width: '32%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Property</th>
+                <th style={{ width: '12%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Type</th>
+                <th style={{ width: '13%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Rent/mo</th>
+                <th style={{ width: '12%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Status</th>
+                <th style={{ width: '13%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Bookings</th>
+                <th style={{ width: '18%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((p, i) => {
-                const activeBookings = bookings.filter(b => b.propertyId === p.id && b.status === 'Confirmed').length
+                const activeBookingCount = bookings.filter(
+                  b => b.propertyId === p.id && b.status === 'Confirmed'
+                ).length
                 return (
-                  <tr key={p.id} className="border-b border-[#f2f3ff] hover:bg-[#faf8ff] transition-colors last:border-0">
-
-                    {/* Property cell */}
-                    <td className="px-4 py-3.5">
+                  <tr
+                    key={p.id}
+                    className="border-b border-[#f2f3ff] last:border-0"
+                    style={{ cursor: 'default' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#faf8ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = ''}
+                  >
+                    {/* Property */}
+                    <td className="px-4 py-[13px]">
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-10 h-8 rounded-md bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]} flex-shrink-0`} />
+                        <div
+                          className="w-10 h-8 rounded-md flex-shrink-0"
+                          style={{ background: GRADIENTS[i % GRADIENTS.length] }}
+                        />
                         <div>
                           <div className="text-[13px] font-semibold text-[#191b24] leading-snug">{p.title}</div>
                           <div className="text-[11px] text-[#727787]">{p.city}, {p.state}</div>
@@ -159,20 +189,30 @@ export default function MyProperties() {
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 text-[13px] text-[#424655]">{p.type}</td>
+                    {/* Type */}
+                    <td className="px-4 py-[13px] text-[13px] text-[#424655]">{p.type}</td>
 
-                    <td className="px-4 py-3.5 text-[13px] font-bold text-[#0053cc]">{formatINR(p.rent)}</td>
-
-                    <td className="px-4 py-3.5">
-                      <Badge label={p.status} variant={STATUS_BADGE[p.status] || 'gray'} />
+                    {/* Rent */}
+                    <td className="px-4 py-[13px]">
+                      <span className={`text-[13px] font-bold ${p.status === 'Inactive' ? 'text-[#727787]' : 'text-[#0053cc]'}`}>
+                        {formatINR(p.rent)}
+                      </span>
                     </td>
 
-                    <td className="px-4 py-3.5 text-[13px] text-[#191b24]">
-                      {activeBookings > 0 ? `${activeBookings} active` : '—'}
+                    {/* Status chip */}
+                    <td className="px-4 py-[13px]">
+                      <span className={`inline-block px-2.5 py-[2px] rounded-full text-[11px] font-bold ${CHIP[p.status] || CHIP.Inactive}`}>
+                        {p.status}
+                      </span>
+                    </td>
+
+                    {/* Bookings */}
+                    <td className="px-4 py-[13px] text-[13px] text-[#191b24]">
+                      {activeBookingCount > 0 ? `${activeBookingCount} active` : '—'}
                     </td>
 
                     {/* Actions */}
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-[13px]">
                       <div className="flex gap-1.5">
                         <ActionBtn
                           onClick={() => navigate(`/owner/properties/${p.id}/edit`)}
@@ -206,7 +246,7 @@ export default function MyProperties() {
         )}
       </div>
 
-      {/* Delete confirmation modal */}
+      {/* ── Delete modal ── */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-7 w-full max-w-sm shadow-xl border border-[#e6e7f4]">
@@ -236,18 +276,28 @@ export default function MyProperties() {
   )
 }
 
-// Action button 
+// ── Stat card ──
+function StatCard({ label, value, valueClass }) {
+  return (
+    <div className="bg-white border border-[#e6e7f4] rounded-xl p-4">
+      <div className="text-[11px] font-bold tracking-widest text-[#727787] uppercase mb-1.5">{label}</div>
+      <div className={`text-[22px] font-bold tracking-tight ${valueClass}`}>{value}</div>
+    </div>
+  )
+}
+
+// ── Action button ──
 function ActionBtn({ children, onClick, variant = 'default' }) {
   const styles = {
     primary: 'text-[#0053cc] border-[#b2c5ff] bg-[#f2f3ff] hover:bg-blue-50',
     default: 'text-[#424655] border-[#e6e7f4] bg-white hover:bg-gray-50',
-    danger:  'text-red-700 border-red-200 bg-white hover:bg-red-50',
-    green:   'text-green-700 border-green-200 bg-green-50 hover:bg-green-100',
+    danger:  'text-[#93000a] border-[#ffdad6] bg-[#fff5f5] hover:bg-red-50',
+    green:   'text-[#1a6b32] border-[#c8e6c9] bg-[#f1f8f2] hover:bg-green-50',
   }
   return (
     <button
       onClick={onClick}
-      className={`border rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${styles[variant]}`}
+      className={`border rounded-md px-2.5 py-[5px] text-[11px] font-semibold transition-colors ${styles[variant]}`}
     >
       {children}
     </button>

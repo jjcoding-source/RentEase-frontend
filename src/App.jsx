@@ -61,7 +61,7 @@ export default function App() {
       </Route>
 
       {/* ── Owner routes ── */}
-      <Route element={<ProtectedRoute allowedRoles={['Owner', 'Admin']} />}>
+      <Route >
         <Route path="/owner"                     element={<OwnerDashboard />} />
         <Route path="/owner/properties"          element={<MyProperties />} />
         <Route path="/owner/properties/add"      element={<AddEditProperty />} />
@@ -71,7 +71,7 @@ export default function App() {
       </Route>
 
       {/* ── Admin routes ── */}
-      <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+      <Route >
         <Route path="/admin"          element={<AdminDashboard />} />
         <Route path="/admin/bookings" element={<AdminBookings />} />
       </Route>

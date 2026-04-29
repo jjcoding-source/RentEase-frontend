@@ -4,50 +4,89 @@ import { useProperties } from '../../hooks/useProperties'
 import { useOwnerBookings } from '../../hooks/useBookings'
 import { formatINR } from '../../utils/formatCurrency'
 import { useAuth } from '../../context/AuthContext'
-import Badge from '../../components/ui/Badge'
-import StatCard from '../../components/ui/StatCard'
 
-const CARD_GRADIENTS = [
-  'from-blue-200 to-blue-700',
-  'from-cyan-200 to-teal-600',
-  'from-gray-200 to-gray-600',
-  'from-indigo-200 to-blue-700',
+const GRADIENTS = [
+  'linear-gradient(135deg,#b5d4f4,#185fa5)',
+  'linear-gradient(135deg,#adecff,#00687a)',
+  'linear-gradient(135deg,#dce3eb,#3d444b)',
+  'linear-gradient(135deg,#dae2ff,#0053cc)',
 ]
 
-const STATUS_BADGE = {
-  Pending:   'amber',
-  Confirmed: 'green',
-  Rejected:  'red',
+const RENTER_COLORS = ['#0053cc','#00687a','#3d444b','#a43700','#1a6b32','#854f0b']
+
+const STATUS_CHIP = {
+  Active:   'bg-[#e1f5e8] text-[#1a6b32]',
+  Pending:  'bg-[#fff3cd] text-[#854f0b]',
+  Inactive: 'bg-[#f2f3ff] text-[#424655]',
+  Rejected: 'bg-[#ffdad6] text-[#93000a]',
 }
 
-const BORDER_STATUS = {
-  Pending:   'border-l-amber-400',
-  Confirmed: 'border-l-green-700',
-  Rejected:  'border-l-red-700',
+const BOOKING_CHIP = {
+  Pending:   'bg-[#fff3cd] text-[#854f0b]',
+  Confirmed: 'bg-[#e1f5e8] text-[#1a6b32]',
+  Rejected:  'bg-[#ffdad6] text-[#93000a]',
 }
+
+const CARD_BORDER = {
+  Pending:   'border-l-[#f4a82a]',
+  Confirmed: 'border-l-[#1a6b32]',
+  Rejected:  'border-l-[#ba1a1a]',
+}
+
+const QUICK_ACTIONS = [
+  {
+    icon: '🏠',
+    label: 'Add property',
+    sub: 'List a new property',
+    bg: '#dbeafe',
+    to: '/owner/properties/add',
+  },
+  {
+    icon: '📋',
+    label: 'View bookings',
+    sub: 'Pending requests',
+    bg: '#fff3cd',
+    to: '/owner/bookings',
+  },
+  {
+    icon: '🏘',
+    label: 'My listings',
+    sub: 'Manage properties',
+    bg: '#dcfce7',
+    to: '/owner/properties',
+  },
+  {
+    icon: '👤',
+    label: 'My profile',
+    sub: 'Edit your info',
+    bg: '#f2f3ff',
+    to: '/profile',
+  },
+]
 
 export default function OwnerDashboard() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user }  = useAuth()
 
-  const { data: properties = [], isLoading: loadingProps } = useProperties({ owner: true })
+  const { data: properties = [], isLoading: loadingProps }    = useProperties({ owner: true })
   const { data: bookings   = [], isLoading: loadingBookings } = useOwnerBookings()
 
-  const pendingBookings   = bookings.filter(b => b.status === 'Pending')
-  const confirmedBookings = bookings.filter(b => b.status === 'Confirmed')
+  // Derived stats
   const activeProperties  = properties.filter(p => p.status === 'Active')
   const pendingProperties = properties.filter(p => p.status === 'Pending')
+  const pendingBookings   = bookings.filter(b => b.status === 'Pending')
+  const confirmedBookings = bookings.filter(b => b.status === 'Confirmed')
 
   const monthlyRevenue = activeProperties.reduce((sum, p) => {
     const hasConfirmed = confirmedBookings.some(b => b.propertyId === p.id)
-    return hasConfirmed ? sum + p.rent : sum
+    return hasConfirmed ? sum + (p.rent || 0) : sum
   }, 0)
 
   return (
     <PageWrapper pendingBookings={pendingBookings.length}>
 
       {/* ── Welcome bar ── */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-5">
         <div>
           <h1 className="text-[22px] font-bold text-[#191b24] tracking-tight">
             Good morning, {user?.name?.split(' ')[0]} 👋
@@ -58,41 +97,47 @@ export default function OwnerDashboard() {
         </div>
         <button
           onClick={() => navigate('/owner/properties/add')}
-          className="bg-[#006aff] text-white px-4 py-2.5 rounded-lg text-[13px] font-bold hover:bg-[#0053cc] transition-colors flex items-center gap-1.5"
+          className="flex items-center gap-1.5 bg-[#006aff] text-white px-[18px] py-2.5 rounded-lg text-[13px] font-bold hover:bg-[#0053cc] transition-colors"
         >
           + Add new property
         </button>
       </div>
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard
           label="Total listings"
           value={loadingProps ? '—' : properties.length}
+          valueClass="text-[#0053cc]"
         />
         <StatCard
           label="Active"
           value={loadingProps ? '—' : activeProperties.length}
-          valueColor="text-green-700"
+          valueClass="text-[#1a6b32]"
         />
         <StatCard
           label="Pending bookings"
           value={loadingBookings ? '—' : pendingBookings.length}
-          valueColor="text-amber-700"
+          valueClass="text-[#854f0b]"
         />
         <StatCard
           label="Monthly revenue"
-          value={loadingProps ? '—' : formatINR(monthlyRevenue)}
-          valueColor="text-[#0053cc]"
+          value={loadingProps ? '—' :
+            monthlyRevenue >= 100000
+              ? `₹${(monthlyRevenue / 100000).toFixed(1)}L`
+              : formatINR(monthlyRevenue)
+          }
+          valueClass="text-[#191b24]"
         />
       </div>
 
-      <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+      {/* ── Two column: listings + bookings ── */}
+      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
 
         {/* ── My listings ── */}
         <div className="bg-white border border-[#e6e7f4] rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#e6e7f4]">
-            <h2 className="text-[14px] font-bold text-[#191b24]">My listings</h2>
+            <h2 className="text-[15px] font-bold text-[#191b24]">My listings</h2>
             <button
               onClick={() => navigate('/owner/properties')}
               className="text-[12px] text-[#0053cc] font-semibold hover:underline"
@@ -101,8 +146,10 @@ export default function OwnerDashboard() {
             </button>
           </div>
 
-          {loadingProps && <LoadingRows count={3} />}
+          {/* Loading */}
+          {loadingProps && <SkeletonRows count={3} />}
 
+          {/* Empty */}
           {!loadingProps && properties.length === 0 && (
             <EmptyState
               icon="🏠"
@@ -112,46 +159,52 @@ export default function OwnerDashboard() {
             />
           )}
 
+          {/* List */}
           {!loadingProps && properties.slice(0, 5).map((p, i) => {
             const bookingCount = bookings.filter(b => b.propertyId === p.id).length
             return (
               <div
                 key={p.id}
-                className="flex items-center gap-3 px-5 py-3.5 border-b border-[#f2f3ff] last:border-0 hover:bg-[#faf8ff] transition-colors cursor-pointer"
                 onClick={() => navigate('/owner/properties')}
+                className="flex items-center gap-3 px-5 py-3.5 border-b border-[#f2f3ff] last:border-0 hover:bg-[#faf8ff] transition-colors cursor-pointer"
               >
-                <div className={`w-10 h-8 rounded-md bg-gradient-to-br ${CARD_GRADIENTS[i % 4]} flex-shrink-0`} />
+                {/* Thumb */}
+                <div
+                  className="w-10 h-8 rounded-md flex-shrink-0"
+                  style={{ background: GRADIENTS[i % GRADIENTS.length] }}
+                />
+
+                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-semibold text-[#191b24] truncate">{p.title}</div>
-                  <div className="text-[11px] text-[#727787]">{p.city} · {formatINR(p.rent)}/mo</div>
+                  <div className="text-[11px] text-[#727787]">
+                    {p.city}{p.state ? `, ${p.state}` : ''} · {formatINR(p.rent)}/mo
+                  </div>
                 </div>
+
+                {/* Right side */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {bookingCount > 0 && (
                     <span className="text-[10px] text-[#424655] bg-[#f2f3ff] px-2 py-0.5 rounded-full font-semibold">
                       {bookingCount} booking{bookingCount > 1 ? 's' : ''}
                     </span>
                   )}
-                  <Badge
-                    label={p.status}
-                    variant={
-                      p.status === 'Active'   ? 'green' :
-                      p.status === 'Pending'  ? 'amber' :
-                      p.status === 'Inactive' ? 'gray'  : 'red'
-                    }
-                  />
+                  <span className={`inline-block px-2.5 py-[2px] rounded-full text-[11px] font-bold ${STATUS_CHIP[p.status] || STATUS_CHIP.Inactive}`}>
+                    {p.status}
+                  </span>
                 </div>
               </div>
             )
           })}
         </div>
 
-        {/* ── Pending booking requests ── */}
+        {/* ── Booking requests ── */}
         <div className="bg-white border border-[#e6e7f4] rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#e6e7f4]">
             <div className="flex items-center gap-2">
-              <h2 className="text-[14px] font-bold text-[#191b24]">Booking requests</h2>
+              <h2 className="text-[15px] font-bold text-[#191b24]">Booking requests</h2>
               {pendingBookings.length > 0 && (
-                <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="bg-[#ba1a1a] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                   {pendingBookings.length}
                 </span>
               )}
@@ -164,35 +217,45 @@ export default function OwnerDashboard() {
             </button>
           </div>
 
-          {loadingBookings && <LoadingRows count={3} />}
+          {/* Loading */}
+          {loadingBookings && <SkeletonRows count={3} />}
 
+          {/* Empty */}
           {!loadingBookings && bookings.length === 0 && (
             <EmptyState icon="📋" message="No booking requests yet." />
           )}
 
-          {!loadingBookings && bookings.slice(0, 5).map((b, i) => (
+          {/* Cards */}
+          {!loadingBookings && bookings.slice(0, 4).map((b, i) => (
             <div
               key={b.id}
-              className={`flex items-center gap-3 px-5 py-3.5 border-b border-[#f2f3ff] last:border-0 border-l-4 ${BORDER_STATUS[b.status] || 'border-l-transparent'} hover:bg-[#faf8ff] transition-colors cursor-pointer`}
               onClick={() => navigate('/owner/bookings')}
+              className={`flex items-center gap-3 px-5 py-3.5 border-b border-[#f2f3ff] last:border-0 border-l-4 hover:bg-[#faf8ff] transition-colors cursor-pointer ${CARD_BORDER[b.status] || 'border-l-transparent'}`}
             >
               {/* Renter avatar */}
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-                style={{ background: '#0053cc' }}
+                style={{ background: RENTER_COLORS[i % RENTER_COLORS.length] }}
               >
                 {b.renterName?.slice(0, 2).toUpperCase() || '??'}
               </div>
 
+              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-semibold text-[#191b24] truncate">{b.renterName}</div>
                 <div className="text-[11px] text-[#727787] truncate">
-                  {b.propertyTitle} · {b.moveIn ? new Date(b.moveIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                  {b.propertyTitle}
+                  {b.moveIn
+                    ? ` · ${new Date(b.moveIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                    : ''}
                 </div>
               </div>
 
+              {/* Right: chip + rent */}
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <Badge label={b.status} variant={STATUS_BADGE[b.status] || 'gray'} />
+                <span className={`inline-block px-2.5 py-[2px] rounded-full text-[10px] font-bold ${BOOKING_CHIP[b.status] || ''}`}>
+                  {b.status}
+                </span>
                 <span className="text-[11px] font-bold text-[#0053cc]">
                   {b.rent ? formatINR(b.rent) : '—'}/mo
                 </span>
@@ -203,77 +266,52 @@ export default function OwnerDashboard() {
       </div>
 
       {/* ── Quick actions ── */}
-      <div className="mt-5 bg-white border border-[#e6e7f4] rounded-xl p-5">
-        <h2 className="text-[14px] font-bold text-[#191b24] mb-4">Quick actions</h2>
+      <div className="bg-white border border-[#e6e7f4] rounded-xl p-5 mb-4">
+        <h2 className="text-[15px] font-bold text-[#191b24] mb-4">Quick actions</h2>
         <div className="grid grid-cols-4 gap-3">
-          {[
-            {
-              icon: '🏠', label: 'Add property',
-              sub: 'List a new property',
-              color: '#dbeafe', textColor: '#1558c0',
-              action: () => navigate('/owner/properties/add'),
-            },
-            {
-              icon: '📋', label: 'View bookings',
-              sub: `${pendingBookings.length} pending`,
-              color: '#fff3cd', textColor: '#854f0b',
-              action: () => navigate('/owner/bookings'),
-            },
-            {
-              icon: '🏘', label: 'My listings',
-              sub: `${properties.length} total`,
-              color: '#dcfce7', textColor: '#1a6b32',
-              action: () => navigate('/owner/properties'),
-            },
-            {
-              icon: '👤', label: 'My profile',
-              sub: 'Edit your info',
-              color: '#f2f3ff', textColor: '#0040a1',
-              action: () => navigate('/profile'),
-            },
-          ].map(q => (
+          {QUICK_ACTIONS.map(q => (
             <button
               key={q.label}
-              onClick={q.action}
+              onClick={() => navigate(q.to)}
               className="flex flex-col items-start p-4 rounded-xl border border-[#e6e7f4] hover:border-[#b2c5ff] hover:shadow-sm transition-all text-left"
             >
               <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl mb-3"
-                style={{ background: q.color }}
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl mb-3 flex-shrink-0"
+                style={{ background: q.bg }}
               >
                 {q.icon}
               </div>
               <div className="text-[13px] font-bold text-[#191b24]">{q.label}</div>
-              <div className="text-[11px] mt-0.5" style={{ color: q.textColor }}>{q.sub}</div>
+              <div className="text-[11px] text-[#727787] mt-0.5">{q.sub}</div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Pending properties ── */}
+      {/* ── Pending admin review warning ── */}
       {pendingProperties.length > 0 && (
-        <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div className="bg-[#fff3cd] border border-[#f4a82a] rounded-xl p-5">
           <div className="flex items-start gap-3">
             <span className="text-xl flex-shrink-0">⚠️</span>
             <div className="flex-1">
-              <div className="text-[13px] font-bold text-amber-800 mb-0.5">
+              <div className="text-[13px] font-bold text-[#854f0b] mb-0.5">
                 {pendingProperties.length} propert{pendingProperties.length > 1 ? 'ies' : 'y'} awaiting admin review
               </div>
-              <div className="text-[12px] text-amber-700 mb-3">
+              <div className="text-[12px] text-[#a16207] mb-3 leading-relaxed">
                 These listings are not visible to renters until approved by an admin.
               </div>
               <div className="flex flex-col gap-1.5">
                 {pendingProperties.map(p => (
-                  <div key={p.id} className="flex items-center gap-2 text-[12px] text-amber-800">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-                    {p.title} — {p.city}
+                  <div key={p.id} className="flex items-center gap-2 text-[12px] text-[#854f0b]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f4a82a] flex-shrink-0" />
+                    {p.title}{p.city ? ` — ${p.city}` : ''}
                   </div>
                 ))}
               </div>
             </div>
             <button
               onClick={() => navigate('/owner/properties')}
-              className="text-[12px] text-amber-700 font-semibold border border-amber-300 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors flex-shrink-0"
+              className="text-[12px] text-[#854f0b] font-semibold border border-[#f4a82a] px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors flex-shrink-0"
             >
               View listings
             </button>
@@ -285,8 +323,17 @@ export default function OwnerDashboard() {
   )
 }
 
-// helpers 
-function LoadingRows({ count = 3 }) {
+// ── Small helpers ──
+function StatCard({ label, value, valueClass }) {
+  return (
+    <div className="bg-white border border-[#e6e7f4] rounded-xl p-4">
+      <div className="text-[11px] font-bold tracking-widest text-[#727787] uppercase mb-1.5">{label}</div>
+      <div className={`text-[22px] font-bold tracking-tight ${valueClass}`}>{value}</div>
+    </div>
+  )
+}
+
+function SkeletonRows({ count = 3 }) {
   return (
     <div className="flex flex-col divide-y divide-[#f2f3ff]">
       {Array.from({ length: count }).map((_, i) => (
