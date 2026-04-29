@@ -6,18 +6,19 @@ export default function ProtectedRoute({ allowedRoles }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-50">
-        <div className="text-brand-600 font-semibold text-sm">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#f8faff]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#1558c0] border-t-transparent rounded-full animate-spin" />
+          <div className="text-[13px] text-[#64748b] font-medium">Loading...</div>
+        </div>
       </div>
     )
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />
-  }
+  if (!user) return <Navigate to="/auth" replace />
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/unauthorized" replace />
   }
 
   return <Outlet />
