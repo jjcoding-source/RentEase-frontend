@@ -13,7 +13,7 @@ const RENTER_SECTIONS = [
   {
     label: 'Bookings',
     items: [
-      { to: '/my-bookings',    label: 'My bookings',   icon: 'calendar', badgeKey: 'pendingBookings' },
+      { to: '/my-bookings',    label: 'My bookings',    icon: 'calendar', badgeKey: 'pendingBookings' },
       { to: '/rental-history', label: 'Rental history', icon: 'history' },
     ],
   },
@@ -27,7 +27,8 @@ const RENTER_SECTIONS = [
     label: 'Account',
     items: [
       { to: '/profile',       label: 'Profile & settings', icon: 'user' },
-      { to: '/notifications',  label: 'Notifications',      icon: 'bell', badgeKey: 'unreadNotifs' },
+      { to: '/notifications', label: 'Notifications',      icon: 'bell',     badgeKey: 'unreadNotifs' },
+      { to: '/settings',      label: 'Settings',           icon: 'settings' },
     ],
   },
 ]
@@ -37,15 +38,17 @@ const OWNER_SECTIONS = [
   {
     label: 'Main',
     items: [
-      { to: '/owner',            label: 'Overview',      icon: 'grid' },
-      { to: '/owner/properties', label: 'My properties', icon: 'home' },
-      { to: '/owner/bookings',   label: 'Bookings',      icon: 'calendar', badgeKey: 'pendingBookings' },
+      { to: '/owner',                label: 'Overview',       icon: 'grid' },
+      { to: '/owner/properties',     label: 'My properties',  icon: 'home' },
+      { to: '/owner/bookings',       label: 'Bookings',       icon: 'calendar', badgeKey: 'pendingBookings' },
+      { to: '/owner/rental-history', label: 'Rental history', icon: 'history' },
     ],
   },
   {
     label: 'Account',
     items: [
-      { to: '/profile', label: 'My profile', icon: 'user' },
+      { to: '/profile',  label: 'My profile', icon: 'user' },
+      { to: '/settings', label: 'Settings',   icon: 'settings' },
     ],
   },
 ]
@@ -55,8 +58,16 @@ const ADMIN_SECTIONS = [
   {
     label: 'Main',
     items: [
-      { to: '/admin',   label: 'Admin panel', icon: 'grid' },
-      { to: '/profile', label: 'My profile',  icon: 'user' },
+      { to: '/admin',          label: 'Dashboard',    icon: 'grid' },
+      { to: '/admin/bookings', label: 'All bookings', icon: 'calendar' },
+      { to: '/properties',     label: 'Browse',       icon: 'search' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { to: '/profile',  label: 'My profile', icon: 'user' },
+      { to: '/settings', label: 'Settings',   icon: 'settings' },
     ],
   },
 ]
@@ -110,6 +121,12 @@ const ICONS = {
       <path d="M1 6l6-5 6 5v7a1 1 0 01-1 1H2a1 1 0 01-1-1V6z" stroke={c} strokeWidth="1.1" strokeLinejoin="round"/>
     </svg>
   ),
+  settings: (c) => (
+    <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
+      <circle cx="7" cy="7" r="2" stroke={c} strokeWidth="1.1"/>
+      <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.5 2.5l1 1M10.5 10.5l1 1M11.5 2.5l-1 1M2.5 11.5l1-1" stroke={c} strokeWidth="1.1" strokeLinecap="round"/>
+    </svg>
+  ),
   logout: (c) => (
     <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
       <path d="M5.5 2H2.5A1.5 1.5 0 001 3.5v7A1.5 1.5 0 002.5 12h7A1.5 1.5 0 0011 10.5V7.5M8 2h4v4M7 7l5-5" stroke={c} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
@@ -142,7 +159,7 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
   return (
     <aside className="bg-white border-r border-[#e2e8f0] flex flex-col min-h-screen w-[190px] flex-shrink-0">
 
-      {/* Brand + role tag */}
+      {/* ── Brand + role tag ── */}
       <div className="px-3.5 py-3 border-b border-[#e2e8f0]">
         <div className="text-[16px] font-bold text-[#1558c0]">
           Estates<span className="text-[#1e293b]">.</span>
@@ -152,13 +169,17 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
         </span>
       </div>
 
-      {/* Nav sections */}
-      <nav className="flex-1 overflow-y-auto">
+      {/* ── Nav sections ── */}
+      <nav className="flex-1 overflow-y-auto py-1">
         {sections.map((section) => (
-          <div key={section.label}>
+          <div key={section.label} className="mb-1">
+
+            {/* Section label */}
             <div className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase px-3.5 pt-3 pb-1.5">
               {section.label}
             </div>
+
+            {/* Nav items */}
             {section.items.map((item) => {
               const badgeVal = item.badgeKey ? badgeValues[item.badgeKey] : 0
               return (
@@ -190,10 +211,10 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
           </div>
         ))}
 
-        {/* Logout */}
-        <div className="px-3.5 pt-3 pb-1.5">
-          <div className="text-[9px] font-bold tracking-widest text-[#94a3b8] uppercase mb-1.5"></div>
-        </div>
+        {/* ── Divider before logout ── */}
+        <div className="mx-3.5 my-2 h-px bg-[#e2e8f0]" />
+
+        {/* ── Logout ── */}
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 px-3.5 py-2 text-[12px] font-medium text-[#64748b] hover:bg-gray-50 w-full transition-colors"
@@ -203,14 +224,14 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
         </button>
       </nav>
 
-      {/* User footer */}
+      {/* ── User footer ── */}
       {user && (
         <div className="flex items-center gap-2 px-3.5 py-3 border-t border-[#e2e8f0]">
           <div className="w-[30px] h-[30px] rounded-full bg-[#1558c0] flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
             {user.name?.slice(0, 2).toUpperCase()}
           </div>
-          <div>
-            <div className="text-[11px] font-semibold text-[#1e293b] leading-none">{user.name}</div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold text-[#1e293b] leading-none truncate">{user.name}</div>
             <div className="text-[10px] text-[#94a3b8] mt-0.5">{user.role} account</div>
           </div>
         </div>
