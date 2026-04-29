@@ -148,26 +148,26 @@ export default function Landing() {
       {/* ── Hero ── */}
       <div
         className="bg-[#eef4ff] grid items-center overflow-hidden relative"
-        style={{ gridTemplateColumns: '1fr 1fr', minHeight: '420px', padding: '0 32px' }}
+        style={{ gridTemplateColumns: '1.15fr 0.85fr', minHeight: '380px', padding: '0 32px' }}
       >
         {/* Left */}
-        <div className="py-[52px]">
+        <div className="py-10">
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 bg-[#dbeafe] border border-[#bfdbfe] text-[#1558c0] text-[11px] font-bold tracking-widest px-3.5 py-1.5 rounded-full mb-5 uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-[#1558c0]" />
             Trusted by 18,000+ renters across India
           </div>
 
-          <h1 className="text-[38px] font-bold text-[#0f172a] leading-[1.18] tracking-tight mb-3.5">
+          <h1 className="text-[42px] font-bold text-[#0f172a] leading-[1.12] tracking-tight mb-3">
             Find your <span className="text-[#1558c0]">perfect</span><br />rental home today
           </h1>
-          <p className="text-[15px] text-[#475569] mb-7 leading-relaxed max-w-[420px]">
+          <p className="text-[15px] text-[#475569] mb-6 leading-relaxed max-w-[500px]">
             Verified listings, transparent pricing, zero brokerage. Browse thousands of homes
             from trusted owners — all in one place.
           </p>
 
           {/* Search card */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 max-w-[480px]">
+          <div className="bg-white rounded-2xl border border-white/80 p-5 max-w-[540px] shadow-[0_18px_40px_rgba(21,88,192,0.08)]">
             <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest mb-2.5">
               Where are you looking?
             </div>
@@ -229,8 +229,8 @@ export default function Landing() {
           </div>
 
           {/* Trust row */}
-          <div className="flex gap-5 items-center mt-5">
-            {['No hidden fees', 'Verified owners', '24 hr response'].map(t => (
+          <div className="flex gap-5 items-center mt-4">
+            {['No hidden fees', 'Verified owners'].map(t => (
               <div key={t} className="flex items-center gap-1.5">
                 <div className="w-[18px] h-[18px] bg-[#d1fae5] rounded-full flex items-center justify-center flex-shrink-0">
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -244,10 +244,10 @@ export default function Landing() {
         </div>
 
         {/* Right — hero illustration + floating cards */}
-        <div className="flex items-center justify-center h-full py-8">
+        <div className="flex items-center justify-end h-full py-6 pr-2">
           <div className="relative inline-block">
             {/* Main frame */}
-            <div className="w-[280px] h-[340px] rounded-[18px] bg-[#c7deff] border border-[#bfdbfe] overflow-hidden">
+            <div className="w-[292px] h-[348px] rounded-[20px] bg-[#c7deff] border border-[#bfdbfe] overflow-hidden shadow-[0_18px_40px_rgba(59,130,246,0.12)]">
               <svg viewBox="0 0 280 340" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
                 <rect width="280" height="340" fill="#c7deff"/>
                 <rect x="0" y="200" width="280" height="140" fill="#a8c8f0"/>
@@ -269,14 +269,14 @@ export default function Landing() {
             </div>
 
             {/* Floating card 1 — bottom left */}
-            <div className="absolute -bottom-2 -left-8 bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 min-w-[160px] shadow-sm">
+            <div className="absolute -bottom-2 -left-6 bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 min-w-[160px] shadow-md">
               <div className="text-[10px] text-[#64748b] font-semibold tracking-widest uppercase mb-0.5">Avg. monthly rent</div>
               <div className="text-[15px] font-bold text-[#1558c0]">₹24,500</div>
               <div className="text-[11px] text-[#94a3b8] mt-0.5">Bengaluru · 2 BHK</div>
             </div>
 
             {/* Floating card 2 — top right */}
-            <div className="absolute top-12 -right-6 bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 min-w-[130px] shadow-sm">
+            <div className="absolute top-10 -right-5 bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 min-w-[130px] shadow-md">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
                 <span className="text-[12px] text-[#15803d] font-semibold">Available now</span>
