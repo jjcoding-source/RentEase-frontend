@@ -15,7 +15,7 @@ const FILTERS = ['All', 'Unread', 'Bookings', 'Price alerts', 'System']
 export default function Notifications() {
   const [filter, setFilter] = useState('All')
 
- const { data: notifications = [], isLoading } = useNotifications()
+  const { data: notifications = [], isLoading } = useNotifications()
   const { mutateAsync: markAll }                = useMarkAllRead()
   const { mutateAsync: markOne }                = useMarkOneRead()
 
