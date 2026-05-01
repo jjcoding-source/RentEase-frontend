@@ -3,6 +3,7 @@ import PageWrapper from '../../components/layout/PageWrapper'
 import { useAuth } from '../../context/AuthContext'
 import { useMyBookings } from '../../hooks/useBookings'
 import { useMe, useUpdateMe, useChangePassword, useUpdatePreferences } from '../../hooks/useUser'
+import { useToast } from '../../components/ui/Toast'
 import { formatINR } from '../../utils/formatCurrency'
 import Badge from '../../components/ui/Badge'
 
@@ -38,10 +39,11 @@ export default function UserProfile() {
   const { mutateAsync: changePasswordFn, isPending: savingPw } = useChangePassword()
   const { mutateAsync: updatePrefsFn } = useUpdatePreferences()
 
+  // Toast Hook
+  const { toast } = useToast()
+
   const [tab,      setTab]      = useState('Personal details')
   const [editMode, setEditMode] = useState(false)
-  const [error,    setError]    = useState('')
-  const [success,  setSuccess]  = useState('')
   const [showPw,   setShowPw]   = useState(false)
 
   const [form, setForm] = useState({
@@ -60,7 +62,7 @@ export default function UserProfile() {
     confirm: '',
   })
 
-  // Populate form when profile data loads
+  // Populate form when profile loads
   useEffect(() => {
     if (profile) {
       setForm({
@@ -86,10 +88,8 @@ export default function UserProfile() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  // Updated with Toast
   async function handleSaveProfile() {
-    setError('')
-    setSuccess('')
-
     try {
       const updatedUser = await updateMe({
         name:        form.name,
@@ -103,20 +103,29 @@ export default function UserProfile() {
         login(updatedUser.token)
       }
 
-      setSuccess('Profile saved successfully.')
+      toast({
+        message: 'Profile saved successfully.',
+        type: 'success'
+      })
+
       setEditMode(false)
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save profile.')
+      toast({
+        message: err.response?.data?.message || 'Failed to save profile.',
+        type: 'error'
+      })
     }
   }
 
+  // Updated with Toast
   async function handleChangePassword(e) {
     e.preventDefault()
-    setError('')
-    setSuccess('')
 
     if (pwForm.next !== pwForm.confirm) {
-      return setError('New passwords do not match.')
+      return toast({
+        message: 'New passwords do not match.',
+        type: 'error'
+      })
     }
 
     try {
@@ -125,23 +134,38 @@ export default function UserProfile() {
         newPassword:     pwForm.next,
       })
 
-      setSuccess('Password changed successfully.')
+      toast({
+        message: 'Password changed successfully.',
+        type: 'success'
+      })
+
       setPwForm({ current: '', next: '', confirm: '' })
       setShowPw(false)
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to change password.')
+      toast({
+        message: err.response?.data?.message || 'Failed to change password.',
+        type: 'error'
+      })
     }
   }
 
+  // Updated with Toast
   async function handlePrefToggle(key) {
     const updated = { ...prefs, [key]: !prefs[key] }
     setPrefs(updated)
 
     try {
       await updatePrefsFn(updated)
+      toast({
+        message: 'Preferences updated successfully.',
+        type: 'success'
+      })
     } catch (err) {
       setPrefs(prefs) // revert on failure
-      console.error('Failed to update preferences:', err)
+      toast({
+        message: 'Failed to update preferences.',
+        type: 'error'
+      })
     }
   }
 
@@ -253,18 +277,6 @@ export default function UserProfile() {
             </button>
           </div>
         </form>
-      )}
-
-      {/* ── Alerts ── */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-xl px-4 py-2.5 mb-3 font-medium">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-[12px] rounded-xl px-4 py-2.5 mb-3 font-medium">
-          {success}
-        </div>
       )}
 
       {/* ── Tabs ── */}
@@ -478,7 +490,7 @@ export default function UserProfile() {
   )
 }
 
-// ── Small helper components ──
+/* ── Small helper components ── */
 function MiniStat({ num, label }) {
   return (
     <div className="text-center p-3 bg-[#f2f3ff] rounded-lg">
