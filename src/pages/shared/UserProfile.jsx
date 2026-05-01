@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import PageWrapper from '../../components/layout/PageWrapper'
 import { useAuth } from '../../context/AuthContext'
 import { useMyBookings } from '../../hooks/useBookings'
+import { useMe, useUpdateMe, useChangePassword, useUpdatePreferences } from '../../hooks/useUser'
 import { formatINR } from '../../utils/formatCurrency'
 import Badge from '../../components/ui/Badge'
-import api from '../../api/axiosInstance'
 
 const TABS = ['Personal details', 'Booking history', 'Preferences']
 
@@ -31,87 +31,117 @@ const DEFAULT_PREFS = {
 export default function UserProfile() {
   const { user, login } = useAuth()
 
-  const [tab,        setTab]        = useState('Personal details')
-  const [editMode,   setEditMode]   = useState(false)
-  const [saving,     setSaving]     = useState(false)
-  const [error,      setError]      = useState('')
-  const [success,    setSuccess]    = useState('')
-  const [prefs,      setPrefs]      = useState(DEFAULT_PREFS)
-  const [pwForm,     setPwForm]     = useState({ current: '', next: '', confirm: '' })
-  const [showPw,     setShowPw]     = useState(false)
+  // ── Real API Hooks ──
+  const { data: profile, isLoading: loadingProfile } = useMe()
+  const { data: bookings = [], isLoading: loadingBookings } = useMyBookings()
+  const { mutateAsync: updateMe, isPending: savingProfile } = useUpdateMe()
+  const { mutateAsync: changePasswordFn, isPending: savingPw } = useChangePassword()
+  const { mutateAsync: updatePrefsFn } = useUpdatePreferences()
+
+  const [tab,      setTab]      = useState('Personal details')
+  const [editMode, setEditMode] = useState(false)
+  const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState('')
+  const [showPw,   setShowPw]   = useState(false)
 
   const [form, setForm] = useState({
-    name:  user?.name  || '',
-    email: user?.email || '',
+    name:  '',
+    email: '',
     phone: '',
     dob:   '',
     city:  '',
   })
 
-  const { data: bookings = [], isLoading: loadingBookings } = useMyBookings()
+  const [prefs, setPrefs] = useState(DEFAULT_PREFS)
 
+  const [pwForm, setPwForm] = useState({
+    current: '',
+    next: '',
+    confirm: '',
+  })
+
+  // Populate form when profile data loads
   useEffect(() => {
-    api.get('/users/me')
-      .then(r => {
-        const d = r.data
-        setForm({
-          name:  d.name  || '',
-          email: d.email || '',
-          phone: d.phone || '',
-          dob:   d.dob   || '',
-          city:  d.city  || '',
-        })
-        if (d.preferences) setPrefs({ ...DEFAULT_PREFS, ...d.preferences })
+    if (profile) {
+      setForm({
+        name:  profile.name  || '',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        dob:   profile.dateOfBirth || profile.dob || '',
+        city:  profile.city  || '',
       })
-      .catch(() => {})
-  }, [])
+
+      if (profile.preferences || profile.prefBookingUpdates !== undefined) {
+        setPrefs({
+          bookingUpdates:     profile.prefBookingUpdates  ?? profile.preferences?.bookingUpdates     ?? true,
+          newListings:        profile.prefNewListings     ?? profile.preferences?.newListings        ?? true,
+          priceDropAlerts:    profile.prefPriceDropAlerts ?? profile.preferences?.priceDropAlerts    ?? false,
+          marketingEmails:    profile.prefMarketingEmails ?? profile.preferences?.marketingEmails    ?? false,
+        })
+      }
+    }
+  }, [profile])
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   async function handleSaveProfile() {
-    setError(''); setSuccess('')
-    setSaving(true)
+    setError('')
+    setSuccess('')
+
     try {
-      const res = await api.put('/users/me', form)
-      if (res.data.token) login(res.data.token)
+      const updatedUser = await updateMe({
+        name:        form.name,
+        email:       form.email,
+        phone:       form.phone,
+        city:        form.city,
+        dateOfBirth: form.dob,
+      })
+
+      if (updatedUser?.token) {
+        login(updatedUser.token)
+      }
+
       setSuccess('Profile saved successfully.')
       setEditMode(false)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save profile.')
-    } finally {
-      setSaving(false)
     }
   }
 
   async function handleChangePassword(e) {
     e.preventDefault()
-    setError(''); setSuccess('')
-    if (pwForm.next !== pwForm.confirm) return setError('New passwords do not match.')
-    setSaving(true)
+    setError('')
+    setSuccess('')
+
+    if (pwForm.next !== pwForm.confirm) {
+      return setError('New passwords do not match.')
+    }
+
     try {
-      await api.post('/users/me/change-password', {
+      await changePasswordFn({
         currentPassword: pwForm.current,
         newPassword:     pwForm.next,
       })
+
       setSuccess('Password changed successfully.')
       setPwForm({ current: '', next: '', confirm: '' })
       setShowPw(false)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to change password.')
-    } finally {
-      setSaving(false)
     }
   }
 
   async function handlePrefToggle(key) {
     const updated = { ...prefs, [key]: !prefs[key] }
     setPrefs(updated)
+
     try {
-      await api.patch('/users/me/preferences', updated)
-    } catch {
+      await updatePrefsFn(updated)
+    } catch (err) {
       setPrefs(prefs) // revert on failure
+      console.error('Failed to update preferences:', err)
     }
   }
 
@@ -121,7 +151,6 @@ export default function UserProfile() {
 
   return (
     <PageWrapper>
-
       {/* ── Profile header ── */}
       <div className="bg-white border border-[#e6e7f4] rounded-xl p-6 flex items-start gap-5 mb-4">
         <div className="relative flex-shrink-0">
@@ -134,7 +163,9 @@ export default function UserProfile() {
         </div>
 
         <div className="flex-1">
-          <div className="text-[22px] font-bold text-[#191b24] tracking-tight mb-0.5">{form.name || user?.name}</div>
+          <div className="text-[22px] font-bold text-[#191b24] tracking-tight mb-0.5">
+            {form.name || user?.name}
+          </div>
           <div className="inline-block bg-[#f2f3ff] text-[#0040a1] text-[11px] font-bold px-2.5 py-0.5 rounded-full mb-2">
             {user?.role}
           </div>
@@ -144,7 +175,9 @@ export default function UserProfile() {
               { icon: '📞', val: form.phone || '+91 —' },
               { icon: '📍', val: form.city  || '—' },
             ].map(({ icon, val }) => (
-              <span key={val} className="text-[12px] text-[#424655]">{icon} {val}</span>
+              <span key={val} className="text-[12px] text-[#424655]">
+                {icon} {val}
+              </span>
             ))}
           </div>
         </div>
@@ -156,13 +189,14 @@ export default function UserProfile() {
           >
             Change password
           </button>
+
           {editMode ? (
             <button
               onClick={handleSaveProfile}
-              disabled={saving}
+              disabled={savingProfile}
               className="bg-[#006aff] text-white px-4 py-2 rounded-lg text-[13px] font-bold hover:bg-[#0053cc] disabled:opacity-60 transition-colors"
             >
-              {saving ? 'Saving...' : 'Save profile'}
+              {savingProfile ? 'Saving...' : 'Save profile'}
             </button>
           ) : (
             <button
@@ -183,15 +217,38 @@ export default function UserProfile() {
         >
           <h3 className="text-[14px] font-bold text-[#191b24] mb-3">Change password</h3>
           <div className="grid grid-cols-3 gap-3">
-            <PwField label="Current password"  name="current"  value={pwForm.current}  onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))} />
-            <PwField label="New password"       name="next"     value={pwForm.next}     onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))} />
-            <PwField label="Confirm new"        name="confirm"  value={pwForm.confirm}  onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))} />
+            <PwField 
+              label="Current password" 
+              name="current" 
+              value={pwForm.current} 
+              onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))} 
+            />
+            <PwField 
+              label="New password" 
+              name="next" 
+              value={pwForm.next} 
+              onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))} 
+            />
+            <PwField 
+              label="Confirm new" 
+              name="confirm" 
+              value={pwForm.confirm} 
+              onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))} 
+            />
           </div>
           <div className="flex gap-2 mt-3">
-            <button type="submit" disabled={saving} className="bg-[#006aff] text-white px-4 py-2 rounded-lg text-[13px] font-bold hover:bg-[#0053cc] disabled:opacity-60">
-              {saving ? 'Saving...' : 'Update password'}
+            <button 
+              type="submit" 
+              disabled={savingPw}
+              className="bg-[#006aff] text-white px-4 py-2 rounded-lg text-[13px] font-bold hover:bg-[#0053cc] disabled:opacity-60"
+            >
+              {savingPw ? 'Updating...' : 'Update password'}
             </button>
-            <button type="button" onClick={() => setShowPw(false)} className="border border-[#e6e7f4] px-4 py-2 rounded-lg text-[13px] font-semibold text-[#424655] hover:bg-gray-50">
+            <button 
+              type="button" 
+              onClick={() => setShowPw(false)} 
+              className="border border-[#e6e7f4] px-4 py-2 rounded-lg text-[13px] font-semibold text-[#424655] hover:bg-gray-50"
+            >
               Cancel
             </button>
           </div>
@@ -228,8 +285,7 @@ export default function UserProfile() {
       {/* PERSONAL DETAILS */}
       {tab === 'Personal details' && (
         <div className="grid grid-cols-2 gap-4">
-
-          {/* Left */}
+          {/* Left - Personal Information */}
           <div className="flex flex-col gap-4">
             <div className="bg-white border border-[#e6e7f4] rounded-xl overflow-hidden">
               <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[#e6e7f4]">
@@ -241,6 +297,7 @@ export default function UserProfile() {
                   {editMode ? 'Cancel' : 'Edit'}
                 </button>
               </div>
+
               {[
                 { label: 'Full name',     name: 'name',  type: 'text' },
                 { label: 'Email address', name: 'email', type: 'email' },
@@ -249,22 +306,28 @@ export default function UserProfile() {
                 { label: 'City',          name: 'city',  type: 'text' },
               ].map(({ label, name, type }) => (
                 <div key={name} className="px-[18px] py-3 border-b border-[#f2f3ff] last:border-0">
-                  <label className="block text-[10px] font-bold tracking-widest text-[#727787] uppercase mb-1">{label}</label>
+                  <label className="block text-[10px] font-bold tracking-widest text-[#727787] uppercase mb-1">
+                    {label}
+                  </label>
                   {editMode ? (
                     <input
-                      name={name} type={type} value={form[name]}
+                      name={name}
+                      type={type}
+                      value={form[name]}
                       onChange={handleChange}
                       className="w-full border border-[#c2c6d8] rounded-lg px-3 py-2 text-[13px] text-[#191b24] outline-none focus:border-[#006aff] font-[inherit]"
                     />
                   ) : (
-                    <div className="text-[13px] text-[#191b24] font-medium">{form[name] || '—'}</div>
+                    <div className="text-[13px] text-[#191b24] font-medium">
+                      {form[name] || '—'}
+                    </div>
                   )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Right */}
+          {/* Right - Stats & Recent Bookings */}
           <div className="flex flex-col gap-4">
             {/* Stats */}
             <div className="bg-white border border-[#e6e7f4] rounded-xl overflow-hidden">
@@ -274,9 +337,9 @@ export default function UserProfile() {
                 </h2>
               </div>
               <div className="grid grid-cols-3 gap-2.5 p-[18px]">
-                <MiniStat num={activeBookings}              label="Active bookings" />
-                <MiniStat num={completedBookings}           label="Total stays" />
-                <MiniStat num="4.9"                         label="Trust score" />
+                <MiniStat num={activeBookings} label="Active bookings" />
+                <MiniStat num={completedBookings} label="Total stays" />
+                <MiniStat num="4.9" label="Trust score" />
               </div>
             </div>
 
@@ -291,6 +354,7 @@ export default function UserProfile() {
                   View all →
                 </button>
               </div>
+
               {loadingBookings ? (
                 <div className="py-6 text-center text-[12px] text-gray-400 animate-pulse">Loading...</div>
               ) : bookings.length === 0 ? (
@@ -302,8 +366,8 @@ export default function UserProfile() {
                     <div className="flex-1">
                       <div className="text-[13px] font-semibold text-[#191b24]">{b.propertyTitle}</div>
                       <div className="text-[11px] text-[#727787] mt-0.5">
-                        {b.moveIn ? new Date(b.moveIn).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '—'} ·
-                        {b.rent ? ` ${formatINR(b.rent)}/mo` : ''}
+                        {b.moveIn ? new Date(b.moveIn).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '—'} 
+                        {b.rent ? ` · ${formatINR(b.rent)}/mo` : ''}
                       </div>
                     </div>
                     <Badge label={b.status} variant={STATUS_BADGE[b.status] || 'gray'} />
@@ -414,7 +478,7 @@ export default function UserProfile() {
   )
 }
 
-// ── Small helpers ──
+// ── Small helper components ──
 function MiniStat({ num, label }) {
   return (
     <div className="text-center p-3 bg-[#f2f3ff] rounded-lg">
@@ -427,9 +491,14 @@ function MiniStat({ num, label }) {
 function PwField({ label, name, value, onChange }) {
   return (
     <div>
-      <label className="block text-[10px] font-bold tracking-widest text-[#727787] uppercase mb-1.5">{label}</label>
+      <label className="block text-[10px] font-bold tracking-widest text-[#727787] uppercase mb-1.5">
+        {label}
+      </label>
       <input
-        name={name} type="password" value={value} onChange={onChange}
+        name={name}
+        type="password"
+        value={value}
+        onChange={onChange}
         className="w-full border border-[#c2c6d8] rounded-lg px-3 py-2 text-[13px] text-[#191b24] outline-none focus:border-[#006aff] font-[inherit]"
       />
     </div>
