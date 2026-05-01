@@ -4,6 +4,7 @@ import PageWrapper from '../../components/layout/PageWrapper'
 import { useProperties, useDeleteProperty } from '../../hooks/useProperties'
 import { useOwnerBookings } from '../../hooks/useBookings'
 import { useToast } from '../../components/ui/Toast'
+import { StatCardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton'
 import { formatINR } from '../../utils/formatCurrency'
 
 const STATUS_FILTERS = ['All', 'Active', 'Pending', 'Inactive']
@@ -32,7 +33,6 @@ export default function MyProperties() {
   const { data: bookings   = [] }                     = useOwnerBookings()
   const { mutateAsync: deleteProperty, isPending: isDeleting } = useDeleteProperty()
 
-  // Toast Hook
   const { toast } = useToast()
 
   const pendingBookings = bookings.filter(b => b.status === 'Pending').length
@@ -47,7 +47,6 @@ export default function MyProperties() {
     .filter(p => p.status === 'Active')
     .reduce((s, p) => s + (p.rent || 0), 0)
 
-  // Updated delete handler with Toast
   async function handleDelete(id) {
     try {
       await deleteProperty(id)
@@ -82,17 +81,27 @@ export default function MyProperties() {
         </button>
       </div>
 
-      {/* ── Stats ── */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
-        <StatCard label="Total listings"  value={properties.length} valueClass="text-[#0053cc]" />
-        <StatCard label="Active"          value={totalActive}        valueClass="text-[#1a6b32]" />
-        <StatCard label="Pending review"  value={totalPending}       valueClass="text-[#854f0b]" />
-        <StatCard label="Monthly revenue" value={
-          monthlyRev >= 100000
-            ? `₹${(monthlyRev / 100000).toFixed(1)}L`
-            : formatINR(monthlyRev)
-        } valueClass="text-[#191b24]" />
-      </div>
+      {/* ── Stats Section with Skeleton ── */}
+      {isLoading ? (
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          {[1, 2, 3, 4].map(i => <StatCardSkeleton key={i} />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          <StatCard label="Total listings"  value={properties.length} valueClass="text-[#0053cc]" />
+          <StatCard label="Active"          value={totalActive}        valueClass="text-[#1a6b32]" />
+          <StatCard label="Pending review"  value={totalPending}       valueClass="text-[#854f0b]" />
+          <StatCard 
+            label="Monthly revenue" 
+            value={
+              monthlyRev >= 100000
+                ? `₹${(monthlyRev / 100000).toFixed(1)}L`
+                : formatINR(monthlyRev)
+            } 
+            valueClass="text-[#191b24]" 
+          />
+        </div>
+      )}
 
       {/* ── Table section ── */}
       <div className="bg-white border border-[#e6e7f4] rounded-xl overflow-hidden">
@@ -105,6 +114,7 @@ export default function MyProperties() {
               const count = f === 'All'
                 ? properties.length
                 : properties.filter(p => p.status === f).length
+
               return (
                 <button
                   key={f}
@@ -122,23 +132,25 @@ export default function MyProperties() {
           </div>
         </div>
 
-        {/* Loading */}
+        {/* Loading State - Table Skeleton */}
         {isLoading && (
-          <div className="py-12 text-center">
-            <div className="flex flex-col gap-3 px-5">
-              {[1,2,3].map(i => (
-                <div key={i} className="flex items-center gap-3 animate-pulse">
-                  <div className="w-10 h-8 rounded bg-gray-200 flex-shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-3 bg-gray-200 rounded w-2/3" />
-                    <div className="h-2.5 bg-gray-200 rounded w-1/3" />
-                  </div>
-                  <div className="w-16 h-5 bg-gray-200 rounded-full" />
-                  <div className="w-24 h-6 bg-gray-200 rounded" />
-                </div>
+          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr style={{ background: '#faf8ff' }}>
+                <th style={{ width: '32%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Property</th>
+                <th style={{ width: '12%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Type</th>
+                <th style={{ width: '13%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Rent/mo</th>
+                <th style={{ width: '12%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Status</th>
+                <th style={{ width: '13%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Bookings</th>
+                <th style={{ width: '18%' }} className="px-4 py-2.5 text-left text-[10px] font-bold tracking-widest text-[#727787] uppercase border-b border-[#e6e7f4]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3, 4].map(i => (
+                <TableRowSkeleton key={i} cols={6} />
               ))}
-            </div>
-          </div>
+            </tbody>
+          </table>
         )}
 
         {/* Error */}
@@ -148,7 +160,7 @@ export default function MyProperties() {
           </div>
         )}
 
-        {/* Empty */}
+        {/* Empty State */}
         {!isLoading && !isError && filtered.length === 0 && (
           <div className="py-14 text-center">
             <div className="text-3xl mb-2">🏠</div>
@@ -162,7 +174,7 @@ export default function MyProperties() {
           </div>
         )}
 
-        {/* Table */}
+        {/* Real Table */}
         {!isLoading && !isError && filtered.length > 0 && (
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
@@ -189,7 +201,6 @@ export default function MyProperties() {
                     onMouseEnter={e => e.currentTarget.style.background = '#faf8ff'}
                     onMouseLeave={e => e.currentTarget.style.background = ''}
                   >
-                    {/* Property */}
                     <td className="px-4 py-[13px]">
                       <div className="flex items-center gap-2.5">
                         <div
@@ -203,29 +214,24 @@ export default function MyProperties() {
                       </div>
                     </td>
 
-                    {/* Type */}
                     <td className="px-4 py-[13px] text-[13px] text-[#424655]">{p.type}</td>
 
-                    {/* Rent */}
                     <td className="px-4 py-[13px]">
                       <span className={`text-[13px] font-bold ${p.status === 'Inactive' ? 'text-[#727787]' : 'text-[#0053cc]'}`}>
                         {formatINR(p.rent)}
                       </span>
                     </td>
 
-                    {/* Status */}
                     <td className="px-4 py-[13px]">
                       <span className={`inline-block px-2.5 py-[2px] rounded-full text-[11px] font-bold ${CHIP[p.status] || CHIP.Inactive}`}>
                         {p.status}
                       </span>
                     </td>
 
-                    {/* Bookings */}
                     <td className="px-4 py-[13px] text-[13px] text-[#191b24]">
                       {activeBookingCount > 0 ? `${activeBookingCount} active` : '—'}
                     </td>
 
-                    {/* Actions */}
                     <td className="px-4 py-[13px]">
                       <div className="flex gap-1.5">
                         <ActionBtn
