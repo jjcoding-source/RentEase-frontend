@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import PageWrapper from '../../components/layout/PageWrapper'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../api/axiosInstance'
+import { useNotifications, useMarkAllRead, useMarkOneRead } from '../../hooks/useNotifications'
 
 const TYPE_DOT = {
   booking:  { color: '#16a34a', bg: '#dcfce7' },
@@ -14,22 +14,10 @@ const FILTERS = ['All', 'Unread', 'Bookings', 'Price alerts', 'System']
 
 export default function Notifications() {
   const [filter, setFilter] = useState('All')
-  const qc = useQueryClient()
 
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications'],
-    queryFn:  () => api.get('/notifications').then(r => r.data),
-  })
-
-  const { mutateAsync: markAllRead } = useMutation({
-    mutationFn: () => api.post('/notifications/mark-all-read'),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['notifications'] }),
-  })
-
-  const { mutateAsync: markOneRead } = useMutation({
-    mutationFn: (id) => api.patch(`/notifications/${id}/read`),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['notifications'] }),
-  })
+ const { data: notifications = [], isLoading } = useNotifications()
+  const { mutateAsync: markAll }                = useMarkAllRead()
+  const { mutateAsync: markOne }                = useMarkOneRead()
 
   const unread = notifications.filter(n => !n.read).length
 
