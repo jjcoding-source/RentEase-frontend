@@ -1,8 +1,9 @@
-
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProperties } from '../../hooks/useProperties'
+import { useToggleSave, useSavedProperties } from '../../hooks/useProperties'
+import { useToast } from '../../components/ui/Toast'
+import { PropertyCardSkeleton } from '../../components/ui/Skeleton'
 import { useAuth } from '../../context/AuthContext'
 import { formatINR } from '../../utils/formatCurrency'
 import PageWrapper from '../../components/layout/PageWrapper'
@@ -12,10 +13,11 @@ const BEDROOM_OPTIONS  = ['Any', '1', '2', '3+']
 const AMENITY_OPTIONS  = ['WiFi', 'Parking', 'Pool', 'Gym', 'Pet friendly', 'Furnished']
 const SORT_OPTIONS     = [
   { value: 'relevance',  label: 'Sort: Relevance' },
-  { value: 'price_asc', label: 'Price: Low to high' },
-  { value: 'price_desc',label: 'Price: High to low' },
-  { value: 'newest',    label: 'Newest' },
+  { value: 'price_asc',  label: 'Price: Low to high' },
+  { value: 'price_desc', label: 'Price: High to low' },
+  { value: 'newest',     label: 'Newest' },
 ]
+
 const CARD_GRADIENTS = [
   'from-blue-200 to-blue-700',
   'from-indigo-200 to-blue-700',
@@ -25,6 +27,7 @@ const CARD_GRADIENTS = [
 
 export default function RenterBrowse() {
   const navigate = useNavigate()
+  const { toast } = useToast()
 
   const [priceRange,     setPriceRange]     = useState([8000, 60000])
   const [selectedTypes,  setSelectedTypes]  = useState([])
@@ -32,22 +35,62 @@ export default function RenterBrowse() {
   const [amenities,      setAmenities]      = useState([])
   const [sort,           setSort]           = useState('relevance')
   const [search,         setSearch]         = useState('')
-  const [savedIds,       setSavedIds]       = useState([])
 
   const filters = {
-    minPrice: priceRange[0], maxPrice: priceRange[1],
+    minPrice: priceRange[0],
+    maxPrice: priceRange[1],
     types: selectedTypes.join(','),
     bedrooms: bedrooms === 'Any' ? '' : bedrooms,
     amenities: amenities.join(','),
-    sort, search,
+    sort,
+    search,
   }
 
   const { data: properties = [], isLoading, isError } = useProperties(filters)
 
-  function toggleType(t)    { setSelectedTypes(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]) }
-  function toggleAmenity(a) { setAmenities(p => p.includes(a) ? p.filter(x => x !== a) : [...p, a]) }
-  function toggleSaved(id)  { setSavedIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]) }
-  function resetFilters()   { setPriceRange([8000, 60000]); setSelectedTypes([]); setBedrooms('Any'); setAmenities([]); setSort('relevance'); setSearch('') }
+  // Saved properties hook
+  const { data: savedProperties = [] } = useSavedProperties()
+  const { mutateAsync: toggleSave } = useToggleSave()
+
+  const savedIds = savedProperties.map(p => p.id)
+
+  function toggleType(t) {
+    setSelectedTypes(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t])
+  }
+
+  function toggleAmenity(a) {
+    setAmenities(p => p.includes(a) ? p.filter(x => x !== a) : [...p, a])
+  }
+
+  function resetFilters() {
+    setPriceRange([8000, 60000])
+    setSelectedTypes([])
+    setBedrooms('Any')
+    setAmenities([])
+    setSort('relevance')
+    setSearch('')
+  }
+
+  // Handle save / unsave with toast
+  async function handleSave(id, e) {
+    e.stopPropagation() // Prevent navigating to detail page
+
+    try {
+      const result = await toggleSave(id)
+      
+      toast({
+        message: result.saved 
+          ? 'Property saved to your list!' 
+          : 'Property removed from saved.',
+        type: 'success'
+      })
+    } catch (err) {
+      toast({
+        message: 'Failed to update saved properties.',
+        type: 'error'
+      })
+    }
+  }
 
   return (
     <PageWrapper>
@@ -56,14 +99,16 @@ export default function RenterBrowse() {
         {/* ── Filters sidebar ── */}
         <aside className="w-52 flex-shrink-0">
           <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 sticky top-0">
-
             <FilterSection title="Price range">
               <div className="flex justify-between text-[12px] text-[#424655] mb-1.5">
                 <span>{formatINR(priceRange[0])}</span>
                 <span>{formatINR(priceRange[1])}</span>
               </div>
               <input
-                type="range" min={5000} max={100000} step={1000}
+                type="range"
+                min={5000}
+                max={100000}
+                step={1000}
                 value={priceRange[1]}
                 onChange={e => setPriceRange([priceRange[0], +e.target.value])}
                 className="w-full accent-[#1558c0]"
@@ -77,7 +122,8 @@ export default function RenterBrowse() {
               <div className="grid grid-cols-2 gap-1.5">
                 {PROPERTY_TYPES.map(t => (
                   <button
-                    key={t} onClick={() => toggleType(t)}
+                    key={t}
+                    onClick={() => toggleType(t)}
                     className={`border rounded-md py-1.5 text-[11px] font-semibold transition-colors ${
                       selectedTypes.includes(t)
                         ? 'border-[#1558c0] text-[#1558c0] bg-[#eef4ff]'
@@ -94,7 +140,8 @@ export default function RenterBrowse() {
               <div className="flex gap-1.5 flex-wrap">
                 {BEDROOM_OPTIONS.map(b => (
                   <button
-                    key={b} onClick={() => setBedrooms(b)}
+                    key={b}
+                    onClick={() => setBedrooms(b)}
                     className={`border rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                       bedrooms === b
                         ? 'border-[#1558c0] text-[#1558c0] bg-[#eef4ff]'
@@ -110,7 +157,12 @@ export default function RenterBrowse() {
             <FilterSection title="Amenities">
               {AMENITY_OPTIONS.map(a => (
                 <label key={a} className="flex items-center gap-2 py-1 text-[12px] text-[#334155] cursor-pointer">
-                  <input type="checkbox" checked={amenities.includes(a)} onChange={() => toggleAmenity(a)} className="accent-[#1558c0]" />
+                  <input
+                    type="checkbox"
+                    checked={amenities.includes(a)}
+                    onChange={() => toggleAmenity(a)}
+                    className="accent-[#1558c0]"
+                  />
                   {a}
                 </label>
               ))}
@@ -127,7 +179,7 @@ export default function RenterBrowse() {
 
         {/* ── Main content ── */}
         <div className="flex-1">
-          {/* Search + sort */}
+          {/* Search + Sort */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 bg-white border border-[#e2e8f0] rounded-lg px-3 py-1.5 flex-1 max-w-xs">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24">
@@ -137,18 +189,23 @@ export default function RenterBrowse() {
               <input
                 className="bg-transparent text-[12px] text-[#334155] outline-none w-full placeholder:text-gray-400"
                 placeholder="Search properties..."
-                value={search} onChange={e => setSearch(e.target.value)}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
               />
             </div>
+
             <div className="flex items-center gap-2 ml-3">
               <span className="text-[12px] text-[#64748b]">
-                {isLoading ? 'Loading...' : `${properties.length} found`}
+                {isLoading ? 'Loading...' : `${properties.length} properties found`}
               </span>
               <select
-                value={sort} onChange={e => setSort(e.target.value)}
-                className="border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[#64748b] bg-white outline-none font-[inherit]"
+                value={sort}
+                onChange={e => setSort(e.target.value)}
+                className="border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[#64748b] bg-white outline-none"
               >
-                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {SORT_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -156,27 +213,20 @@ export default function RenterBrowse() {
           {/* Error */}
           {isError && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">
-              Failed to load properties.
+              Failed to load properties. Please try again later.
             </div>
           )}
 
-          {/* Loading skeleton */}
+          {/* Loading Skeletons */}
           {isLoading && (
             <div className="grid grid-cols-2 gap-3">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden animate-pulse">
-                  <div className="h-32 bg-gray-200" />
-                  <div className="p-3 space-y-2">
-                    <div className="h-2.5 bg-gray-200 rounded w-2/3" />
-                    <div className="h-2.5 bg-gray-200 rounded w-1/2" />
-                    <div className="h-3.5 bg-gray-200 rounded w-1/3" />
-                  </div>
-                </div>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <PropertyCardSkeleton key={i} />
               ))}
             </div>
           )}
 
-          {/* Property grid */}
+          {/* Property Grid */}
           {!isLoading && !isError && (
             <>
               {properties.length === 0 ? (
@@ -193,33 +243,47 @@ export default function RenterBrowse() {
                     >
                       <div className={`h-32 bg-gradient-to-br ${CARD_GRADIENTS[i % CARD_GRADIENTS.length]} relative`}>
                         {p.featured && (
-                          <span className="absolute top-2 left-2 bg-[#1558c0]/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">FEATURED</span>
+                          <span className="absolute top-2 left-2 bg-[#1558c0]/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+                            FEATURED
+                          </span>
                         )}
+
                         <button
-                          onClick={e => { e.stopPropagation(); toggleSaved(p.id) }}
-                          className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-xs"
+                          onClick={(e) => handleSave(p.id, e)}
+                          className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-lg hover:scale-110 transition-transform"
                         >
                           {savedIds.includes(p.id) ? '♥' : '♡'}
                         </button>
                       </div>
+
                       <div className="p-3">
                         <div className="text-[10px] font-bold tracking-widest text-[#94a3b8] uppercase mb-0.5">
                           {p.type} · {p.bedrooms}BHK
                         </div>
                         <div className="text-[13px] font-semibold text-[#1e293b] mb-0.5">{p.title}</div>
                         <div className="text-[11px] text-[#94a3b8] mb-2">📍 {p.city}</div>
+
                         <div className="flex items-center justify-between">
                           <span className="text-[14px] font-bold text-[#1558c0]">
-                            {formatINR(p.rent)}<span className="text-[10px] font-normal text-[#94a3b8]">/mo</span>
+                            {formatINR(p.rent)}
+                            <span className="text-[10px] font-normal text-[#94a3b8]">/mo</span>
                           </span>
                           {p.rating && (
-                            <span className="text-[11px] text-[#64748b] bg-[#f8faff] px-2 py-0.5 rounded-full font-semibold">★ {p.rating}</span>
+                            <span className="text-[11px] text-[#64748b] bg-[#f8faff] px-2 py-0.5 rounded-full font-semibold">
+                              ★ {p.rating}
+                            </span>
                           )}
                         </div>
+
                         {p.amenities?.length > 0 && (
                           <div className="flex gap-1 mt-2 flex-wrap">
                             {p.amenities.slice(0, 3).map(a => (
-                              <span key={a} className="text-[10px] bg-[#eef4ff] text-[#1558c0] px-1.5 py-0.5 rounded-full font-semibold">{a}</span>
+                              <span
+                                key={a}
+                                className="text-[10px] bg-[#eef4ff] text-[#1558c0] px-1.5 py-0.5 rounded-full font-semibold"
+                              >
+                                {a}
+                              </span>
                             ))}
                           </div>
                         )}
