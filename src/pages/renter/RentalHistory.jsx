@@ -1,7 +1,6 @@
 import PageWrapper from '../../components/layout/PageWrapper'
-import { useQuery } from '@tanstack/react-query'
+import { useRentalHistory } from '../../hooks/useBookings'
 import { formatINR } from '../../utils/formatCurrency'
-import api from '../../api/axiosInstance'
 
 const CARD_GRADIENTS = [
   'from-blue-200 to-blue-600',
@@ -11,10 +10,7 @@ const CARD_GRADIENTS = [
 ]
 
 export default function RentalHistory() {
-  const { data: history = [], isLoading } = useQuery({
-    queryKey: ['rental-history'],
-    queryFn:  () => api.get('/bookings/history').then(r => r.data),
-  })
+  const { data: history = [], isLoading } = useRentalHistory()  // hook
 
   const totalSpent  = history.reduce((s, h) => s + (h.rent || 0) * (h.duration || 0), 0)
   const totalMonths = history.reduce((s, h) => s + (h.duration || 0), 0)
