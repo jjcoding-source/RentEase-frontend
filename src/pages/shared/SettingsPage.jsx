@@ -155,7 +155,7 @@ export default function SettingsPage() {
                   <div>
                     <div className="text-[12px] font-semibold text-[#334155]">Account type</div>
                     <div className="text-[11px] text-[#94a3b8] mt-0.5">
-                      Your role determines what you can do on Estates
+                      Your role determines what you can do on RentEase
                     </div>
                   </div>
                   <span className="ml-auto bg-[#dbeafe] text-[#1558c0] text-[11px] font-bold px-3 py-1 rounded-full">
@@ -245,7 +245,7 @@ export default function SettingsPage() {
                 <div className="bg-[#f8faff] border border-[#e2e8f0] rounded-xl p-4">
                   <div className="text-[13px] font-semibold text-[#334155] mb-1">Your data</div>
                   <div className="text-[12px] text-[#64748b] leading-relaxed mb-3">
-                    You can request a copy of all your data stored on Estates, or ask us to delete your data.
+                    You can request a copy of all your data stored on RentEase, or ask us to delete your data.
                   </div>
                   <div className="flex gap-2">
                     <button className="border border-[#e2e8f0] bg-white text-[#64748b] px-4 py-2 rounded-lg text-[12px] font-semibold hover:bg-gray-50 transition-colors">
