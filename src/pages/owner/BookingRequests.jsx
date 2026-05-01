@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import PageWrapper from '../../components/layout/PageWrapper'
 import { useOwnerBookings, useUpdateBookingStatus } from '../../hooks/useBookings'
+import { useToast } from '../../components/ui/Toast'
 import { formatINR } from '../../utils/formatCurrency'
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'Rejected']
@@ -31,7 +32,10 @@ export default function BookingRequests() {
   const [expandedId,   setExpandedId]   = useState(null)
 
   const { data: bookings = [], isLoading, isError } = useOwnerBookings()
-  const { mutateAsync: updateStatus, isPending }     = useUpdateBookingStatus()
+  const { mutateAsync: updateStatus, isPending }   = useUpdateBookingStatus()
+
+  // Toast Hook
+  const { toast } = useToast()
 
   const pendingCount   = bookings.filter(b => b.status === 'Pending').length
   const confirmedCount = bookings.filter(b => b.status === 'Confirmed').length
@@ -41,9 +45,23 @@ export default function BookingRequests() {
     ? bookings
     : bookings.filter(b => b.status === activeFilter)
 
+  // Updated handler with Toast notifications
   async function handleStatus(id, status) {
-    try { await updateStatus({ id, status }) }
-    catch { alert('Failed to update booking.') }
+    try {
+      await updateStatus({ id, status })
+
+      toast({
+        message: status === 'Confirmed'
+          ? 'Booking approved successfully ✅'
+          : 'Booking rejected.',
+        type: status === 'Confirmed' ? 'success' : 'warning',
+      })
+    } catch (err) {
+      toast({
+        message: 'Failed to update booking status. Please try again.',
+        type: 'error'
+      })
+    }
   }
 
   return (
@@ -71,6 +89,7 @@ export default function BookingRequests() {
             f === 'Pending'   ? pendingCount    :
             f === 'Confirmed' ? confirmedCount  :
             rejectedCount
+
           return (
             <button
               key={f}
@@ -103,7 +122,7 @@ export default function BookingRequests() {
         </div>
       )}
 
-      {/* ── Empty ── */}
+      {/* ── Empty State ── */}
       {!isLoading && !isError && filtered.length === 0 && (
         <div className="bg-white border border-[#e6e7f4] rounded-xl py-14 text-center">
           <div className="text-3xl mb-2">📋</div>
@@ -113,8 +132,8 @@ export default function BookingRequests() {
         </div>
       )}
 
-      {/* ── Cards ── */}
-      {!isLoading && !isError && (
+      {/* ── Booking Cards ── */}
+      {!isLoading && !isError && filtered.length > 0 && (
         <div className="flex flex-col gap-3">
           {filtered.map((b, i) => (
             <div
@@ -128,9 +147,8 @@ export default function BookingRequests() {
                 style={{ background: GRADIENTS[i % GRADIENTS.length] }}
               />
 
-              {/* Body */}
+              {/* Main Content */}
               <div>
-                {/* Property + meta */}
                 <div className="text-[13px] font-bold text-[#191b24] mb-0.5">
                   {b.propertyTitle}{b.city ? ` — ${b.city}` : ''}
                 </div>
@@ -138,7 +156,7 @@ export default function BookingRequests() {
                   {b.status} · {b.rent ? `${formatINR(b.rent)}/mo` : '—'}
                 </div>
 
-                {/* Renter row */}
+                {/* Renter Info */}
                 <div className="flex items-center gap-2 mb-2">
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
@@ -155,17 +173,18 @@ export default function BookingRequests() {
                   </div>
                 </div>
 
-                {/* Detail pills */}
+                {/* Details */}
                 <div className="flex gap-4 flex-wrap">
                   {b.moveIn && (
-                    <Detail label="Move-in" value={
-                      new Date(b.moveIn).toLocaleDateString('en-IN', {
+                    <Detail 
+                      label="Move-in" 
+                      value={new Date(b.moveIn).toLocaleDateString('en-IN', {
                         day: 'numeric', month: 'short', year: 'numeric'
-                      })
-                    } />
+                      })} 
+                    />
                   )}
                   {b.duration && <Detail label="Duration" value={`${b.duration} months`} />}
-                  {b.occupants && <Detail label="Tenants"  value={b.occupants} />}
+                  {b.occupants && <Detail label="Tenants" value={b.occupants} />}
                   {b.message && (
                     <Detail
                       label="Message"
@@ -174,7 +193,7 @@ export default function BookingRequests() {
                   )}
                 </div>
 
-                {/* Expandable message */}
+                {/* Expandable Message */}
                 {b.message && b.message.length > 35 && (
                   <button
                     onClick={() => setExpandedId(expandedId === b.id ? null : b.id)}
@@ -183,22 +202,20 @@ export default function BookingRequests() {
                     {expandedId === b.id ? 'Show less ↑' : 'Read full message ↓'}
                   </button>
                 )}
-                {expandedId === b.id && (
+
+                {expandedId === b.id && b.message && (
                   <div className="mt-2 bg-[#f2f3ff] rounded-lg px-3 py-2 text-[12px] text-[#424655] leading-relaxed">
                     {b.message}
                   </div>
                 )}
               </div>
 
-              {/* Actions column */}
+              {/* Actions */}
               <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-
-                {/* Status chip */}
                 <span className={`inline-block px-2.5 py-[3px] rounded-full text-[10px] font-bold mb-1 ${CHIP_STYLE[b.status] || ''}`}>
                   {b.status}
                 </span>
 
-                {/* Pending actions */}
                 {b.status === 'Pending' && (
                   <>
                     <button
@@ -206,7 +223,7 @@ export default function BookingRequests() {
                       disabled={isPending}
                       className="bg-[#1a6b32] text-white px-3.5 py-[7px] rounded-md text-[12px] font-bold hover:bg-green-800 disabled:opacity-60 transition-colors w-full text-center"
                     >
-                      Approve
+                      {isPending ? 'Processing...' : 'Approve'}
                     </button>
                     <button
                       onClick={() => handleStatus(b.id, 'Rejected')}
@@ -218,28 +235,24 @@ export default function BookingRequests() {
                   </>
                 )}
 
-                {/* Confirmed actions */}
                 {b.status === 'Confirmed' && (
                   <button className="bg-white text-[#424655] border border-[#e6e7f4] px-3.5 py-[7px] rounded-md text-[12px] font-semibold hover:bg-gray-50 transition-colors w-full text-center">
                     View contract
                   </button>
                 )}
 
-                {/* Rejected actions */}
                 {b.status === 'Rejected' && (
                   <button className="bg-white text-[#424655] border border-[#e6e7f4] px-3.5 py-[7px] rounded-md text-[12px] font-semibold hover:bg-gray-50 transition-colors w-full text-center">
                     View details
                   </button>
                 )}
 
-                {/* Message button — always visible except rejected */}
                 {b.status !== 'Rejected' && (
                   <button className="bg-white text-[#424655] border border-[#e6e7f4] px-3.5 py-[7px] rounded-md text-[12px] font-semibold hover:bg-gray-50 transition-colors w-full text-center">
                     Message
                   </button>
                 )}
 
-                {/* Timestamp */}
                 <div className="text-[10px] text-[#727787] mt-1 text-right">
                   {b.createdAt ? timeAgo(b.createdAt) : ''}
                 </div>
@@ -252,7 +265,7 @@ export default function BookingRequests() {
   )
 }
 
-// ── Helpers ──
+/* ── Helper Components ── */
 function StatCard({ label, value, valueClass }) {
   return (
     <div className="bg-white border border-[#e6e7f4] rounded-xl px-4 py-3.5">
@@ -275,6 +288,7 @@ function timeAgo(dateStr) {
   const mins = Math.floor(diff / 60000)
   const hrs  = Math.floor(mins / 60)
   const days = Math.floor(hrs / 24)
+
   if (days > 0)  return `${days === 1 ? '1 day' : `${days} days`} ago`
   if (hrs  > 0)  return `${hrs  === 1 ? '1 hr'  : `${hrs} hrs`} ago`
   if (mins > 0)  return `${mins} min ago`
