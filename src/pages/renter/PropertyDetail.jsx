@@ -31,7 +31,7 @@ export default function PropertyDetail() {
       {/* ── Navbar ── */}
       <nav className="bg-white border-b border-[#e2e8f0] flex items-center justify-between px-6 h-[54px] sticky top-0 z-10">
         <div className="flex items-center gap-4">
-          <span className="text-[17px] font-bold text-[#1558c0]">Estates<span className="text-[#1e293b]">.</span></span>
+          <span className="text-[17px] font-bold text-[#1558c0]">RentEase</span>
           <button
             onClick={() => navigate('/properties')}
             className="flex items-center gap-1.5 text-[13px] text-[#64748b] font-medium hover:text-[#334155]"
