@@ -156,7 +156,7 @@ export default function AddEditProperty() {
             {isEdit ? 'Edit property' : 'Add new property'}
           </h1>
           <p className="text-[12px] text-[#727787] mt-0.5">
-            Fill in the details to list your property on Estates
+            Fill in the details to list your property on RentEase
           </p>
         </div>
         <button
