@@ -1,27 +1,35 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../context/AuthContext'
 import { formatINR } from '../../utils/formatCurrency'
-import api from '../../api/axiosInstance'
 import Badge from '../../components/ui/Badge'
 import StatCard from '../../components/ui/StatCard'
 
+import {
+  useAdminStats,
+  useAdminUsers,
+  useAdminProperties,
+  useApproveProperty,
+  useRejectProperty,
+  useToggleUser,
+} from '../../hooks/useAdmin'
 
-const adminApi = {
-  getStats:       ()         => api.get('/admin/stats').then(r => r.data),
-  getUsers:       ()         => api.get('/admin/users').then(r => r.data),
-  getProperties:  ()         => api.get('/admin/properties').then(r => r.data),
-  approveProperty:(id)       => api.patch(`/admin/properties/${id}/approve`),
-  rejectProperty: (id)       => api.patch(`/admin/properties/${id}/reject`),
-  deactivateUser: (id)       => api.patch(`/admin/users/${id}/deactivate`),
-  activateUser:   (id)       => api.patch(`/admin/users/${id}/activate`),
+const TABS = ['Overview', 'Properties', 'Users']
+
+const PROP_BADGE = {
+  Active: 'green',
+  Pending: 'amber',
+  Inactive: 'gray',
+  Rejected: 'red'
 }
 
-const TABS       = ['Overview', 'Properties', 'Users']
-const PROP_BADGE = { Active: 'green', Pending: 'amber', Inactive: 'gray', Rejected: 'red' }
 const USER_BADGE = { Active: 'green', Suspended: 'red' }
-const ROLE_COLOR = { Admin: '#be185d', Owner: '#16a34a', Renter: '#1558c0' }
+
+const ROLE_COLOR = {
+  Admin: '#be185d',
+  Owner: '#16a34a',
+  Renter: '#1558c0'
+}
 
 const CARD_GRADIENTS = [
   'from-blue-200 to-blue-700',
@@ -32,33 +40,24 @@ const CARD_GRADIENTS = [
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
-  const navigate         = useNavigate()
-  const qc               = useQueryClient()
+  const navigate = useNavigate()
 
-  const [activeTab,    setActiveTab]    = useState('Overview')
-  const [propFilter,   setPropFilter]   = useState('All')
-  const [userFilter,   setUserFilter]   = useState('All')
-  const [searchUser,   setSearchUser]   = useState('')
-  const [searchProp,   setSearchProp]   = useState('')
+  const [activeTab,  setActiveTab]  = useState('Overview')
+  const [propFilter, setPropFilter] = useState('All')
+  const [userFilter, setUserFilter] = useState('All')
+  const [searchUser, setSearchUser] = useState('')
+  const [searchProp, setSearchProp] = useState('')
 
-  const { data: stats }      = useQuery({ queryKey: ['admin','stats'],      queryFn: adminApi.getStats })
-  const { data: users  = [], isLoading: loadingUsers }
-                             = useQuery({ queryKey: ['admin','users'],       queryFn: adminApi.getUsers })
-  const { data: properties = [], isLoading: loadingProps }
-                             = useQuery({ queryKey: ['admin','properties'],  queryFn: adminApi.getProperties })
+  // ── Real Hooks ──
+  const { data: stats } = useAdminStats()
 
-  const { mutateAsync: approveProperty } = useMutation({
-    mutationFn: adminApi.approveProperty,
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['admin','properties'] }),
-  })
-  const { mutateAsync: rejectProperty } = useMutation({
-    mutationFn: adminApi.rejectProperty,
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['admin','properties'] }),
-  })
-  const { mutateAsync: toggleUser } = useMutation({
-    mutationFn: ({ id, active }) => active ? adminApi.deactivateUser(id) : adminApi.activateUser(id),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['admin','users'] }),
-  })
+  const { data: users = [], isLoading: loadingUsers } = useAdminUsers()
+
+  const { data: properties = [], isLoading: loadingProps } = useAdminProperties()
+
+  const { mutateAsync: approveProperty } = useApproveProperty()
+  const { mutateAsync: rejectProperty }  = useRejectProperty()
+  const { mutateAsync: toggleUser }      = useToggleUser()
 
   // Filtered lists
   const filteredProps = properties
@@ -78,7 +77,7 @@ export default function AdminDashboard() {
       {/* ── Top navbar ── */}
       <nav className="bg-white border-b border-[#e6e7f4] px-6 h-14 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <span className="text-[17px] font-bold text-[#0053cc]">Estates</span>
+          <span className="text-[17px] font-bold text-[#0053cc]">RentEase</span>
           <span className="bg-[#fce7f3] text-[#be185d] text-[10px] font-bold px-2 py-0.5 rounded-full">ADMIN</span>
         </div>
         <div className="flex items-center gap-3">
@@ -122,17 +121,21 @@ export default function AdminDashboard() {
           <>
             {/* Stats grid */}
             <div className="grid grid-cols-4 gap-3 mb-5">
-              <StatCard label="Total users"       value={stats?.totalUsers       ?? '—'} />
-              <StatCard label="Total properties"  value={stats?.totalProperties  ?? '—'} />
-              <StatCard label="Active bookings"   value={stats?.activeBookings   ?? '—'} valueColor="text-green-700" />
-              <StatCard label="Pending review"    value={stats?.pendingProperties ?? '—'} valueColor="text-amber-700" />
+              <StatCard label="Total users"      value={stats?.totalUsers ?? '—'} />
+              <StatCard label="Total properties" value={stats?.totalProperties ?? '—'} />
+              <StatCard label="Active bookings"  value={stats?.activeBookings ?? '—'} valueColor="text-green-700" />
+              <StatCard label="Pending review"   value={stats?.pendingProperties ?? '—'} valueColor="text-amber-700" />
             </div>
 
             {/* Second row */}
             <div className="grid grid-cols-3 gap-3 mb-5">
-              <StatCard label="Monthly revenue"   value={stats?.monthlyRevenue ? formatINR(stats.monthlyRevenue) : '—'} valueColor="text-[#0053cc]" />
-              <StatCard label="Owners"            value={stats?.totalOwners   ?? '—'} />
-              <StatCard label="Renters"           value={stats?.totalRenters  ?? '—'} />
+              <StatCard 
+                label="Monthly revenue" 
+                value={stats?.monthlyRevenue ? formatINR(stats.monthlyRevenue) : '—'} 
+                valueColor="text-[#0053cc]" 
+              />
+              <StatCard label="Owners"  value={stats?.totalOwners ?? '—'} />
+              <StatCard label="Renters" value={stats?.totalRenters ?? '—'} />
             </div>
 
             {/* Pending properties quick view */}
@@ -146,6 +149,7 @@ export default function AdminDashboard() {
                   View all →
                 </button>
               </div>
+
               {properties.filter(p => p.status === 'Pending').length === 0 ? (
                 <div className="py-8 text-center text-[13px] text-gray-400">No pending properties.</div>
               ) : (
@@ -155,11 +159,13 @@ export default function AdminDashboard() {
                       <div className={`w-10 h-8 rounded-md bg-gradient-to-br ${CARD_GRADIENTS[i % 4]} flex-shrink-0`} />
                       <div className="flex-1">
                         <div className="text-[13px] font-semibold text-[#191b24]">{p.title}</div>
-                        <div className="text-[11px] text-[#727787]">{p.city} · {p.ownerName} · {formatINR(p.rent)}/mo</div>
+                        <div className="text-[11px] text-[#727787]">
+                          {p.city} · {p.ownerName} · {formatINR(p.rent)}/mo
+                        </div>
                       </div>
                       <div className="flex gap-1.5">
                         <AdminBtn onClick={() => approveProperty(p.id)} variant="green">Approve</AdminBtn>
-                        <AdminBtn onClick={() => rejectProperty(p.id)}  variant="danger">Reject</AdminBtn>
+                        <AdminBtn onClick={() => rejectProperty(p.id)} variant="danger">Reject</AdminBtn>
                       </div>
                     </div>
                   ))}
@@ -206,6 +212,7 @@ export default function AdminDashboard() {
                     onChange={e => setSearchProp(e.target.value)}
                   />
                 </div>
+
                 {/* Filter */}
                 {['All','Pending','Active','Inactive','Rejected'].map(f => (
                   <button
@@ -221,17 +228,14 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Loading */}
             {loadingProps && (
               <div className="py-10 text-center text-[13px] text-gray-400 animate-pulse">Loading properties...</div>
             )}
 
-            {/* Empty */}
             {!loadingProps && filteredProps.length === 0 && (
               <div className="py-12 text-center text-[13px] text-gray-400">No properties found.</div>
             )}
 
-            {/* Table */}
             {!loadingProps && filteredProps.length > 0 && (
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
@@ -270,7 +274,7 @@ export default function AdminDashboard() {
                           {p.status === 'Pending' && (
                             <>
                               <AdminBtn onClick={() => approveProperty(p.id)} variant="green">Approve</AdminBtn>
-                              <AdminBtn onClick={() => rejectProperty(p.id)}  variant="danger">Reject</AdminBtn>
+                              <AdminBtn onClick={() => rejectProperty(p.id)} variant="danger">Reject</AdminBtn>
                             </>
                           )}
                           {p.status === 'Active' && (
@@ -307,6 +311,7 @@ export default function AdminDashboard() {
                     onChange={e => setSearchUser(e.target.value)}
                   />
                 </div>
+
                 {['All','Renter','Owner','Admin'].map(f => (
                   <button
                     key={f}
@@ -398,6 +403,7 @@ export default function AdminDashboard() {
   )
 }
 
+/* ── Helper Components ── */
 function AdminBtn({ children, onClick, variant = 'default' }) {
   const styles = {
     green:   'text-green-700 border-green-200 bg-green-50 hover:bg-green-100',
@@ -405,6 +411,7 @@ function AdminBtn({ children, onClick, variant = 'default' }) {
     default: 'text-[#424655] border-[#e6e7f4] bg-white hover:bg-gray-50',
     primary: 'text-[#0053cc] border-[#b2c5ff] bg-[#f2f3ff] hover:bg-blue-50',
   }
+
   return (
     <button
       onClick={onClick}
