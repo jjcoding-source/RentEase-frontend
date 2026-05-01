@@ -100,7 +100,7 @@ export default function Landing() {
       {/* ── Navbar ── */}
       <nav className="bg-white border-b border-[#e2e8f0] flex items-center justify-between px-8 h-[62px] sticky top-0 z-20">
         <span className="text-[19px] font-bold text-[#1558c0] tracking-tight">
-          Estates<span className="text-[#1e293b]">.</span>
+          RentEase
         </span>
 
         <div className="flex items-center gap-7">
@@ -369,13 +369,13 @@ export default function Landing() {
 
       {/* ── Footer ── */}
       <footer className="bg-white border-t border-[#e2e8f0] px-8 py-5 flex items-center justify-between">
-        <span className="text-[15px] font-bold text-[#1558c0]">Estates.</span>
+        <span className="text-[15px] font-bold text-[#1558c0]">RentEase</span>
         <div className="flex gap-5">
           {['About', 'Privacy', 'Terms', 'Support', 'Blog'].map(l => (
             <button key={l} className="text-[12px] text-[#94a3b8] hover:text-[#64748b] transition-colors">{l}</button>
           ))}
         </div>
-        <span className="text-[11px] text-[#cbd5e1]">© 2025 Estates. All rights reserved.</span>
+        <span className="text-[11px] text-[#cbd5e1]">© 2025 RentEase. All rights reserved.</span>
       </footer>
     </div>
   )
