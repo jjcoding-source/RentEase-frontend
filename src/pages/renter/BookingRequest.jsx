@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useProperty } from '../../hooks/useProperties'
 import { useCreateBooking } from '../../hooks/useBookings'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../components/ui/Toast'
 import { formatINR } from '../../utils/formatCurrency'
 
 const DURATION_OPTIONS = [
@@ -20,6 +21,9 @@ export default function BookingRequest() {
   const { data: property, isLoading } = useProperty(id)
   const { mutateAsync: createBooking, isPending } = useCreateBooking()
 
+  // Toast Hook
+  const { toast } = useToast()
+
   const [form, setForm] = useState({
     moveIn:      '',
     moveOut:     '',
@@ -34,6 +38,7 @@ export default function BookingRequest() {
     agreeAccurate: false,
     agreeVerify: false,
   })
+
   const [error, setError]     = useState('')
   const [success, setSuccess] = useState(false)
 
@@ -46,34 +51,51 @@ export default function BookingRequest() {
     setForm(prev => ({ ...prev, duration: val }))
   }
 
+  // Updated handleSubmit with Toast
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
-    if (!form.moveIn)       return setError('Please select a move-in date.')
-    if (!form.agreeTerms || !form.agreeAccurate)
+    if (!form.moveIn) return setError('Please select a move-in date.')
+
+    if (!form.agreeTerms || !form.agreeAccurate) {
       return setError('Please agree to all required terms.')
+    }
 
     try {
       await createBooking({
-        propertyId:  id,
-        moveIn:      form.moveIn,
-        moveOut:     form.moveOut,
-        duration:    form.duration,
-        message:     form.message,
-        occupants:   form.occupants,
-        parking:     form.parking,
+        propertyId: id,
+        moveIn:     form.moveIn,
+        moveOut:    form.moveOut,
+        duration:   form.duration,
+        message:    form.message,
+        occupants:  form.occupants,
+        parking:    form.parking,
       })
+
+      // Show success toast
+      toast({
+        message: 'Booking request sent! The owner will respond shortly.',
+        type: 'success'
+      })
+
       setSuccess(true)
     } catch (err) {
-      setError(err.response?.data?.message || 'Booking failed. Please try again.')
+      const errorMessage = err.response?.data?.message || 'Booking failed. Please try again.'
+      setError(errorMessage)
+      
+      toast({
+        message: errorMessage,
+        type: 'error'
+      })
     }
   }
 
   if (success) return <SuccessScreen onBack={() => navigate('/properties')} />
+
   if (isLoading) return (
     <div className="min-h-screen bg-[#f8faff] flex items-center justify-center text-[#1558c0] font-semibold animate-pulse">
-      Loading...
+      Loading property details...
     </div>
   )
 
@@ -115,7 +137,7 @@ export default function BookingRequest() {
             <Step num={4} label="Confirm"         state="pending" />
           </div>
 
-          {/* Error */}
+          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-lg px-3 py-2 mb-4 font-medium">
               {error}
@@ -220,7 +242,8 @@ export default function BookingRequest() {
           </FormCard>
 
           <button
-            type="submit" disabled={isPending}
+            type="submit"
+            disabled={isPending}
             className="w-full bg-[#1558c0] text-white py-3.5 rounded-lg text-[14px] font-bold hover:bg-[#1248a8] transition-colors disabled:opacity-60 mt-1"
           >
             {isPending ? 'Sending request...' : 'Send booking request'}
@@ -279,18 +302,22 @@ export default function BookingRequest() {
   )
 }
 
+/* ── Helper Components ── */
 function Step({ num, label, state }) {
-  const circle =
-    state === 'done'   ? 'bg-[#dcfce7] border border-[#bbf7d0]' :
-    state === 'active' ? 'bg-[#1558c0] text-white' :
-                         'bg-[#f8faff] border border-[#e2e8f0]'
+  const circle = state === 'done' ? 'bg-[#dcfce7] border border-[#bbf7d0]' :
+                 state === 'active' ? 'bg-[#1558c0] text-white' :
+                 'bg-[#f8faff] border border-[#e2e8f0]'
+
   const labelClass = state === 'pending' ? 'text-[#94a3b8]' : 'text-[#1e293b]'
+
   return (
     <div className="flex items-center gap-2">
       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0 ${circle}`}>
-        {state === 'done'
-          ? <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#15803d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          : num}
+        {state === 'done' ? (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="#15803d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ) : num}
       </div>
       <span className={`text-[12px] font-semibold ${labelClass}`}>{label}</span>
     </div>
@@ -329,7 +356,13 @@ function FormField({ label, children }) {
 function CheckItem({ name, checked, onChange, label }) {
   return (
     <label className="flex items-center gap-2 cursor-pointer">
-      <input type="checkbox" name={name} checked={checked} onChange={onChange} className="accent-[#1558c0] w-3.5 h-3.5 flex-shrink-0" />
+      <input 
+        type="checkbox" 
+        name={name} 
+        checked={checked} 
+        onChange={onChange} 
+        className="accent-[#1558c0] w-3.5 h-3.5 flex-shrink-0" 
+      />
       <span className="text-[12px] text-[#475569]">{label}</span>
     </label>
   )
