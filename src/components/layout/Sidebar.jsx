@@ -173,7 +173,7 @@ export default function Sidebar({ pendingBookings = 0, savedCount = 0, unreadNot
       {/* ── Brand + role tag ── */}
       <div className="px-3.5 py-3 border-b border-[#e2e8f0]">
         <div className="text-[16px] font-bold text-[#1558c0]">
-          Estates<span className="text-[#1e293b]">.</span>
+          RentEase
         </div>
         <span className="text-[10px] bg-[#dbeafe] text-[#1558c0] px-2 py-0.5 rounded-full font-bold mt-1 inline-block">
           {user?.role || 'Renter'}
