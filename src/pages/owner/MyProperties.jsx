@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageWrapper from '../../components/layout/PageWrapper'
 import { useProperties, useDeleteProperty } from '../../hooks/useProperties'
 import { useOwnerBookings } from '../../hooks/useBookings'
+import { useToast } from '../../components/ui/Toast'
 import { formatINR } from '../../utils/formatCurrency'
 
 const STATUS_FILTERS = ['All', 'Active', 'Pending', 'Inactive']
@@ -31,6 +32,9 @@ export default function MyProperties() {
   const { data: bookings   = [] }                     = useOwnerBookings()
   const { mutateAsync: deleteProperty, isPending: isDeleting } = useDeleteProperty()
 
+  // Toast Hook
+  const { toast } = useToast()
+
   const pendingBookings = bookings.filter(b => b.status === 'Pending').length
 
   const filtered = activeFilter === 'All'
@@ -43,12 +47,21 @@ export default function MyProperties() {
     .filter(p => p.status === 'Active')
     .reduce((s, p) => s + (p.rent || 0), 0)
 
+  // Updated delete handler with Toast
   async function handleDelete(id) {
     try {
       await deleteProperty(id)
       setConfirmDelete(null)
-    } catch {
-      alert('Failed to delete property.')
+      
+      toast({
+        message: 'Property deleted successfully.',
+        type: 'success'
+      })
+    } catch (err) {
+      toast({
+        message: 'Failed to delete property. Please try again.',
+        type: 'error'
+      })
     }
   }
 
@@ -167,6 +180,7 @@ export default function MyProperties() {
                 const activeBookingCount = bookings.filter(
                   b => b.propertyId === p.id && b.status === 'Confirmed'
                 ).length
+
                 return (
                   <tr
                     key={p.id}
@@ -199,7 +213,7 @@ export default function MyProperties() {
                       </span>
                     </td>
 
-                    {/* Status chip */}
+                    {/* Status */}
                     <td className="px-4 py-[13px]">
                       <span className={`inline-block px-2.5 py-[2px] rounded-full text-[11px] font-bold ${CHIP[p.status] || CHIP.Inactive}`}>
                         {p.status}
@@ -246,13 +260,13 @@ export default function MyProperties() {
         )}
       </div>
 
-      {/* ── Delete modal ── */}
+      {/* ── Delete Confirmation Modal ── */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-7 w-full max-w-sm shadow-xl border border-[#e6e7f4]">
             <h3 className="text-[16px] font-bold text-[#191b24] mb-2">Delete property?</h3>
             <p className="text-[13px] text-[#727787] mb-6 leading-relaxed">
-              This will permanently remove the listing and all associated bookings. This cannot be undone.
+              This will permanently remove the listing and all associated bookings. This action cannot be undone.
             </p>
             <div className="flex gap-2.5">
               <button
@@ -264,7 +278,7 @@ export default function MyProperties() {
               <button
                 onClick={() => handleDelete(confirmDelete)}
                 disabled={isDeleting}
-                className="flex-1 bg-red-600 text-white rounded-lg py-2.5 text-[13px] font-bold hover:bg-red-700 disabled:opacity-60"
+                className="flex-1 bg-red-600 text-white rounded-lg py-2.5 text-[13px] font-bold hover:bg-red-700 disabled:opacity-60 transition-colors"
               >
                 {isDeleting ? 'Deleting...' : 'Yes, delete'}
               </button>
@@ -276,7 +290,7 @@ export default function MyProperties() {
   )
 }
 
-// ── Stat card ──
+/* ── Helper Components ── */
 function StatCard({ label, value, valueClass }) {
   return (
     <div className="bg-white border border-[#e6e7f4] rounded-xl p-4">
@@ -286,7 +300,6 @@ function StatCard({ label, value, valueClass }) {
   )
 }
 
-// ── Action button ──
 function ActionBtn({ children, onClick, variant = 'default' }) {
   const styles = {
     primary: 'text-[#0053cc] border-[#b2c5ff] bg-[#f2f3ff] hover:bg-blue-50',
@@ -294,6 +307,7 @@ function ActionBtn({ children, onClick, variant = 'default' }) {
     danger:  'text-[#93000a] border-[#ffdad6] bg-[#fff5f5] hover:bg-red-50',
     green:   'text-[#1a6b32] border-[#c8e6c9] bg-[#f1f8f2] hover:bg-green-50',
   }
+
   return (
     <button
       onClick={onClick}
